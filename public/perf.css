@@ -1,0 +1,88 @@
+/* The Performance page. Layout: header with comparison and period controls, a one-line
+   summary, recent gains, five totals, then cards: what you own (treemap), growth chart
+   with the trading strip under it, per-stock table, monthly buying and selling with the
+   full transaction list, and method notes. Shared styles are in base.css. */
+#content > * { min-width: 0; }
+#content { display: grid; gap: 24px; }
+.empty { justify-items: start; }
+
+.changes-wrap { display: grid; gap: 8px; }
+.changes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.chg { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; min-width: 0; }
+.chg .k { font-size: .82rem; font-weight: 600; color: var(--fg); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.chg .k input { width: 4.2em; font: 600 .85rem var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+.chg .k input:focus-visible { outline: 2px solid var(--lt); outline-offset: 1px; }
+.chg .v { font: 400 1.5rem/1.2 var(--serif); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.chg .s { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chg .s b { font-weight: 600; }
+
+/* legend swatches: a line, a dashed line, an area, a bar */
+.sw { display: inline-block; width: 18px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 2.5px solid; }
+.sw.dash { border-top-style: dashed; }
+.sw.area { height: 10px; border: 0; border-radius: 2px; }
+.sw.bar { width: 10px; height: 10px; border: 0; border-radius: 2px; }
+
+#chart { min-height: 380px; }
+.chart.months { min-height: 200px; }
+.chart .strip-label { fill: var(--muted); font-weight: 600; }
+.period { margin: 0; font-size: .92rem; max-width: 100ch; }
+.period b { font-variant-numeric: tabular-nums; }
+
+tr.sold td { color: var(--muted); }
+.wbar { display: inline-block; width: 48px; height: 8px; border-radius: 3px; background: var(--grid); vertical-align: middle; margin-right: 8px; position: relative; }
+.wbar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--lt); }
+/* diverging bar for gains: right of the center line is a gain, left a loss */
+.dbar { display: inline-block; width: 60px; height: 8px; vertical-align: middle; margin-right: 8px; position: relative; }
+.dbar::before { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--line); }
+.dbar i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.dbar i.up { left: 50%; background: var(--good); }
+.dbar i.down { right: 50%; background: var(--bad); }
+
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font-size: .88rem; color: var(--muted); }
+.filters select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; margin-left: 6px; }
+.filters select:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+
+/* treemap: groups (sectors) with a header line, then tiles sized by value */
+.treemap { position: relative; min-height: 320px; }
+.tm-group-h {
+  position: absolute; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap;
+  font: 700 .74rem/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--fg);
+}
+.tm-group-h i { flex: none; width: 10px; height: 10px; border-radius: 2px; }
+.tm-group-h span { color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.tm-tile {
+  position: absolute; border-radius: 5px; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  font-variant-numeric: tabular-nums; outline-offset: 2px;
+}
+.tm-tile:focus-visible { outline: 2px solid var(--fg); }
+.tm-tile b { font-weight: 800; letter-spacing: .01em; line-height: 1.05; white-space: nowrap; }
+.tm-tile b.with-logo { display: inline-flex; align-items: center; }
+.tm-tile b.with-logo .logo { margin-right: .3em; }
+.tm-tile b.vert { writing-mode: vertical-rl; transform: rotate(180deg); }
+.tm-tile small { font-weight: 500; opacity: .85; margin-top: 3px; }
+.tm-pop {
+  position: fixed; z-index: 40; width: 280px; display: grid; gap: 8px; padding: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+  font-size: .85rem; color: var(--fg);
+}
+.tm-pop select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.tm-pop select:focus-visible { outline: 2px solid var(--lt); outline-offset: 1px; }
+.tm-pop p { margin: 0; color: var(--muted); font-size: .78rem; }
+.tm-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); align-items: center; }
+.tm-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.tm-legend .ramp { display: inline-block; width: 140px; height: 10px; border-radius: 3px; vertical-align: -1px; margin: 0 6px; }
+
+/* share card dialog */
+.share-dlg {
+  width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 20px; display: grid; gap: 14px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 14px;
+}
+.share-dlg:not([open]) { display: none; }
+.share-dlg::backdrop { background: rgba(0, 0, 0, .55); }
+.share-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.share-preview svg { display: block; width: 100%; height: auto; border-radius: 10px; }
+.share-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.share-actions .note { margin: 0; }
+
+@media (max-width: 640px) { #chart { min-height: 300px; } }

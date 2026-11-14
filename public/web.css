@@ -1,0 +1,36 @@
+/* The report page's toolbar: actions on the left, theme picker on the right. */
+.webbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding-block: 10px;
+  padding-left: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-right, 0px));
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  font: 14px/1.4 var(--sans);
+}
+.wb-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-right: auto; }
+.wb-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--fg); text-decoration: none; }
+.wb-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--neutral-bg); }
+.wb-tab { padding: 5px 12px; border-radius: 7px; color: var(--muted); font-weight: 600; font-size: .85rem; text-decoration: none; }
+.wb-tab:hover { color: var(--fg); }
+.wb-tab[aria-current="page"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.wb-tab:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.wb-brand svg { stroke: var(--lt); }
+.wb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wb-btn {
+  font: 600 .85rem var(--sans); color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; text-decoration: none;
+}
+.wb-btn:hover { border-color: var(--lt); }
+.wb-btn:disabled { opacity: .6; cursor: progress; }
+.wb-btn.primary { background: var(--lt); border-color: var(--lt); color: var(--accent-ink); }
+.wb-btn.danger { border-color: var(--bad); color: var(--bad); }
+.wb-btn:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.wb-auto { font: 600 .85rem var(--sans); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.wb-auto:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.wb-theme { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; }
+.wb-status { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .82rem; }
+.wb-status:empty { display: none; }
+
+/* on phones the toolbar is tall, so it scrolls away with the page */
+@media (max-width: 640px) { .webbar { position: static; } }

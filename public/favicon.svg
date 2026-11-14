@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Glyph: "calendar-dollar" from Tabler Icons 3.49.0 (MIT License, Copyright (c) 2020-2026 Paweł Kuna). See LICENSE-tabler-icons. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b9c73"/>
+      <stop offset="1" stop-color="#155f46"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <g transform="translate(232 232) scale(23.333)" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 21h-7a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v3" />
+    <path d="M16 3v4" />
+    <path d="M8 3v4" />
+    <path d="M4 11h12.5" />
+    <path d="M21 15h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5" />
+    <path d="M19 21v1m0 -8v1" />
+  </g>
+</svg>

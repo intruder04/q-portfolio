@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "q-portfolio",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // every request goes through the Worker, so every page gets the security headers
+    "run_worker_first": true
+  },
+  // Privacy: no request logs or traces are kept in the Cloudflare account. They would
+  // record each price request's ticker and the visitor's IP address.
+  "observability": { "enabled": false },
+  "workers_dev": true,
+  "preview_urls": false
+}

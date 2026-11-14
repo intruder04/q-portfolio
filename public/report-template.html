@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Sell check · Q portfolio</title>
+<style>
+/* BASE:BEGIN */
+/* The shared look of the result pages: type, cards, totals, segmented buttons, tables,
+   labels, tooltips. The sell check carries a copy (scripts/sync.mjs keeps it in step),
+   so a saved report looks the same offline. Colors come from themes.css. */
+:root {
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+.wrap {
+  padding-block: 28px 64px;
+  padding-left: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(16px, 2.5vw, 40px), env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px;
+}
+.wrap > * { min-width: 0; }
+h1 { font: 400 2.1rem/1.15 var(--serif); margin: 0; text-wrap: balance; }
+h2 { font: 600 1.15rem/1.3 var(--sans); margin: 0; text-wrap: balance; }
+h3 { font: 600 1rem/1.3 var(--sans); margin: 0; }
+.sub { color: var(--muted); margin: 6px 0 0; font-size: .9rem; }
+.note { color: var(--muted); font-size: .88rem; margin: 4px 0 0; max-width: 80ch; }
+.lede { margin: 0; font-size: 1.08rem; max-width: 90ch; }
+.lede b { font-weight: 600; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.seg { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--neutral-bg); flex-wrap: wrap; }
+.seg-label { padding: 0 8px 0 6px; color: var(--muted); font-size: .8rem; }
+.seg button {
+  font: 600 .82rem var(--sans); color: var(--muted); background: transparent; border: 0;
+  border-radius: 7px; padding: 5px 10px; cursor: pointer;
+}
+.seg button:hover { color: var(--fg); }
+.seg button[aria-checked="true"], .seg button[aria-pressed="true"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.seg button:focus-visible { outline: 2px solid var(--lt); outline-offset: 1px; }
+.seg button:disabled { cursor: progress; opacity: .6; }
+.seg button.dim { font-weight: 500; }
+.seg.small button { padding: 4px 9px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.tile .k { font-size: .78rem; color: var(--muted); letter-spacing: .02em; }
+.tile .v { font: 400 1.6rem/1.2 var(--serif); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.tile .s { font-size: .82rem; color: var(--muted); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .84rem; color: var(--muted); align-items: center; }
+.legend b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font: 11px var(--sans); }
+
+.tip {
+  position: fixed; z-index: 30; pointer-events: none; max-width: 300px; min-width: 170px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .16); padding: 8px 10px; font-size: .8rem; font-variant-numeric: tabular-nums;
+}
+.tip .h { color: var(--muted); margin-bottom: 4px; }
+.tip .r { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.tip .r span { display: inline-flex; align-items: center; gap: 6px; }
+.tip .r i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; }
+.tip .t { color: var(--muted); margin-top: 4px; max-width: 280px; }
+
+.scroll { overflow-x: auto; }
+.tall { max-height: 520px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .88rem; }
+th, td { padding: 8px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.l, td.l { text-align: left; }
+th { font-weight: 600; font-size: .78rem; color: var(--muted); position: sticky; top: 0; background: var(--panel); z-index: 1; white-space: normal; vertical-align: bottom; }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+th[aria-sort="ascending"] button::after { content: " ▲"; }
+th[aria-sort="descending"] button::after { content: " ▼"; }
+.tkr { font-weight: 700; }
+/* a company logo beside its ticker; the first letter shows until the image loads */
+.logo {
+  --s: 20px; position: relative; display: inline-grid; place-items: center; flex: none;
+  width: var(--s); height: var(--s); border-radius: calc(var(--s) * .25); overflow: hidden;
+  vertical-align: middle; margin-right: 8px;
+  background: var(--neutral-bg); color: var(--muted); font: 700 calc(var(--s) * .5)/1 var(--sans);
+}
+.logo::before { content: attr(data-l); }
+.logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; opacity: 0; }
+.logo img.ok { opacity: 1; }
+/* logo, then ticker over company name */
+.stock { display: flex; align-items: center; min-width: 0; }
+.stock > span:last-child { min-width: 0; }
+.nm { display: block; color: var(--muted); font-size: .76rem; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.p-go, .p-div { background: var(--good-bg); color: var(--good); }
+.p-near, .p-sell, .p-wash { background: var(--warn-bg); color: var(--warn); }
+.p-loss { background: var(--bad-bg); color: var(--bad); }
+.p-low, .p-wait, .p-xfer { background: var(--neutral-bg); color: var(--muted); }
+.p-buy { background: var(--accent-soft); color: var(--fg); }
+
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; color: var(--muted); cursor: pointer; }
+.check input:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.field select, .field input {
+  font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px;
+}
+.field select:focus-visible, .field input:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+
+ul.notes { margin: 0; padding-left: 18px; color: var(--muted); font-size: .88rem; display: grid; gap: 6px; max-width: 100ch; }
+ul.notes b { color: var(--fg); font-weight: 600; }
+
+@media (max-width: 1200px) { .wide-only { display: none; } }
+@media (max-width: 640px) { h1 { font-size: 1.6rem; } }
+/* BASE:END */
+/* THEMES:BEGIN */
+/* Generated from scripts/themes.mjs by scripts/sync-report.mjs. Edit the themes there. */
+:root {
+  --bg: #f6f7f5; --panel: #ffffff; --fg: #1b2420; --muted: #5d6a64; --line: #dde2df; --grid: #ecefed;
+  --accent: #1f7a5a; --accent-ink: #ffffff; --accent-soft: #dbeae5; --accent-line: #75a996; --bad-soft: #f0dfdd; --lt: #1f7a5a;
+  --lt-soft: #dbeae5; --st: #8a948f; --ath: #b4572e; --price: #6f7d8a; --good: #1e7556; --good-bg: #dbe9e4;
+  --warn: #8a5a00; --warn-bg: #ece5d6; --bad: #a33a2b; --bad-bg: #f0dfdd; --neutral-bg: #e8eae9;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #121614; --panel: #1a201d; --fg: #e6ece9; --muted: #9aa7a1; --line: #2c3531; --grid: #242c28;
+    --accent: #4cc095; --accent-ink: #0d1a14; --accent-soft: #223a30; --accent-line: #3e8168; --bad-soft: #3c312c; --lt: #4cc095;
+    --lt-soft: #223a30; --st: #7d8883; --ath: #e08a5f; --price: #8d9aa6; --good: #5fd0a4; --good-bg: #253c33;
+    --warn: #e5b45a; --warn-bg: #3a3827; --bad: #f08a7a; --bad-bg: #3c312c; --neutral-bg: #2c332f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f7f5; --panel: #ffffff; --fg: #1b2420; --muted: #5d6a64; --line: #dde2df; --grid: #ecefed;
+  --accent: #1f7a5a; --accent-ink: #ffffff; --accent-soft: #dbeae5; --accent-line: #75a996; --bad-soft: #f0dfdd; --lt: #1f7a5a;
+  --lt-soft: #dbeae5; --st: #8a948f; --ath: #b4572e; --price: #6f7d8a; --good: #1e7556; --good-bg: #dbe9e4;
+  --warn: #8a5a00; --warn-bg: #ece5d6; --bad: #a33a2b; --bad-bg: #f0dfdd; --neutral-bg: #e8eae9;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #1a201d; --fg: #e6ece9; --muted: #9aa7a1; --line: #2c3531; --grid: #242c28;
+  --accent: #4cc095; --accent-ink: #0d1a14; --accent-soft: #223a30; --accent-line: #3e8168; --bad-soft: #3c312c; --lt: #4cc095;
+  --lt-soft: #223a30; --st: #7d8883; --ath: #e08a5f; --price: #8d9aa6; --good: #5fd0a4; --good-bg: #253c33;
+  --warn: #e5b45a; --warn-bg: #3a3827; --bad: #f08a7a; --bad-bg: #3c312c; --neutral-bg: #2c332f;
+  color-scheme: dark;
+}
+:root[data-theme="github-light"] {
+  --bg: #f6f8fa; --panel: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --grid: #e6eaee;
+  --accent: #0969da; --accent-ink: #ffffff; --accent-soft: #d8e7f9; --accent-line: #639bdd; --bad-soft: #f6dcdd; --lt: #0969da;
+  --lt-soft: #d8e7f9; --st: #818b98; --ath: #bc4c00; --price: #8c959f; --good: #187734; --good-bg: #dae9df;
+  --warn: #8e5f00; --warn-bg: #ede5d6; --bad: #c4222c; --bad-bg: #f6dcdd; --neutral-bg: #e8e9eb;
+  color-scheme: light;
+}
+:root[data-theme="github-dark"] {
+  --bg: #0d1117; --panel: #151b23; --fg: #e6edf3; --muted: #9198a1; --line: #30363d; --grid: #242a31;
+  --accent: #4493f8; --accent-ink: #0d1117; --accent-soft: #1d2e45; --accent-line: #3b69a4; --bad-soft: #39252b; --lt: #4493f8;
+  --lt-soft: #1d2e45; --st: #656c76; --ath: #db6d28; --price: #8b949e; --good: #3fb950; --good-bg: #1c342a;
+  --warn: #d29922; --warn-bg: #332f23; --bad: #f85b54; --bad-bg: #39252b; --neutral-bg: #262d35;
+  color-scheme: dark;
+}
+:root[data-theme="one-dark"] {
+  --bg: #21252b; --panel: #282c34; --fg: #abb2bf; --muted: #8e939c; --line: #3e4451; --grid: #343944;
+  --accent: #61afef; --accent-ink: #21252b; --accent-soft: #314152; --accent-line: #517fa8; --bad-soft: #463b43; --lt: #61afef;
+  --lt-soft: #314152; --st: #5c6370; --ath: #d19a66; --price: #7f848e; --good: #98c379; --good-bg: #3a443f;
+  --warn: #e5c07b; --warn-bg: #46443f; --bad: #e68991; --bad-bg: #463b43; --neutral-bg: #363a43;
+  color-scheme: dark;
+}
+:root[data-theme="dracula"] {
+  --bg: #21222c; --panel: #282a36; --fg: #f8f8f2; --muted: #a0a8cd; --line: #44475a; --grid: #373a4a;
+  --accent: #bd93f9; --accent-ink: #21222c; --accent-soft: #403b55; --accent-line: #8771b1; --bad-soft: #4a3640; --lt: #bd93f9;
+  --lt-soft: #403b55; --st: #6272a4; --ath: #ffb86c; --price: #8be9fd; --good: #50fa7b; --good-bg: #2e4b41;
+  --warn: #f1fa8c; --warn-bg: #484b44; --bad: #ff7777; --bad-bg: #4a3640; --neutral-bg: #393c4b;
+  color-scheme: dark;
+}
+:root[data-theme="tokyo-night"] {
+  --bg: #16161e; --panel: #1a1b26; --fg: #c0caf5; --muted: #9aa5ce; --line: #292e42; --grid: #222535;
+  --accent: #7aa2f7; --accent-ink: #16161e; --accent-soft: #293147; --accent-line: #566ea6; --bad-soft: #3d2a37; --lt: #7aa2f7;
+  --lt-soft: #293147; --st: #565f89; --ath: #ff9e64; --price: #737aa2; --good: #9ece6a; --good-bg: #2f3831;
+  --warn: #e0af68; --warn-bg: #3a3331; --bad: #f7768e; --bad-bg: #3d2a37; --neutral-bg: #2c2e3e;
+  color-scheme: dark;
+}
+:root[data-theme="catppuccin-latte"] {
+  --bg: #e6e9ef; --panel: #eff1f5; --fg: #4c4f69; --muted: #63667a; --line: #ccd0da; --grid: #dcdfe6;
+  --accent: #8839ef; --accent-ink: #eff1f5; --accent-soft: #dfd4f4; --accent-line: #a77de6; --bad-soft: #e6cdd6; --lt: #8839ef;
+  --lt-soft: #dfd4f4; --st: #9ca0b0; --ath: #fe640b; --price: #7c7f93; --good: #2d701e; --good-bg: #d0dcd3;
+  --warn: #8a5812; --warn-bg: #dfd9d1; --bad: #b50d31; --bad-bg: #e6cdd6; --neutral-bg: #dbdee4;
+  color-scheme: light;
+}
+:root[data-theme="catppuccin-mocha"] {
+  --bg: #181825; --panel: #1e1e2e; --fg: #cdd6f4; --muted: #a6adc8; --line: #313244; --grid: #28293a;
+  --accent: #cba6f7; --accent-ink: #1e1e2e; --accent-soft: #3a344e; --accent-line: #8672a6; --bad-soft: #402f42; --lt: #cba6f7;
+  --lt-soft: #3a344e; --st: #6c7086; --ath: #fab387; --price: #9399b2; --good: #a6e3a1; --good-bg: #343e40;
+  --warn: #f9e2af; --warn-bg: #413d43; --bad: #f38ba8; --bad-bg: #402f42; --neutral-bg: #313244;
+  color-scheme: dark;
+}
+:root[data-theme="nord"] {
+  --bg: #2e3440; --panel: #3b4252; --fg: #eceff4; --muted: #d8dee9; --line: #4c566a; --grid: #444d5f;
+  --accent: #88c0d0; --accent-ink: #2e3440; --accent-soft: #475666; --accent-line: #6d90a2; --bad-soft: #555361; --lt: #88c0d0;
+  --lt-soft: #475666; --st: #7b88a1; --ath: #d08770; --price: #81a1c1; --good: #bbcfaa; --good-bg: #4f5960;
+  --warn: #ebcb8b; --warn-bg: #57585b; --bad: #deadb2; --bad-bg: #555361; --neutral-bg: #515867;
+  color-scheme: dark;
+}
+:root[data-theme="solarized-light"] {
+  --bg: #eee8d5; --panel: #fdf6e3; --fg: #073642; --muted: #566c73; --line: #e4ddc8; --grid: #efe8d4;
+  --accent: #2075b0; --accent-ink: #fdf6e3; --accent-soft: #dae1db; --accent-line: #78a4bb; --bad-soft: #f2d5c5; --lt: #2075b0;
+  --lt-soft: #dae1db; --st: #93a1a1; --ath: #cb4b16; --price: #6c71c4; --good: #5d6b00; --good-bg: #e3e0bf;
+  --warn: #7f6000; --warn-bg: #e9debf; --bad: #b92a27; --bad-bg: #f2d5c5; --neutral-bg: #e6e3d3;
+  color-scheme: light;
+}
+:root[data-theme="solarized-dark"] {
+  --bg: #002b36; --panel: #073642; --fg: #eee8d5; --muted: #93a1a1; --line: #0e4a57; --grid: #0b414e;
+  --accent: #3794d6; --accent-ink: #002b36; --accent-soft: #0f455a; --accent-line: #25739d; --bad-soft: #2b414b; --lt: #3794d6;
+  --lt-soft: #0f455a; --st: #586e75; --ath: #cb4b16; --price: #6c71c4; --good: #a5b442; --good-bg: #204a42;
+  --warn: #c7a53d; --warn-bg: #264841; --bad: #e97c7a; --bad-bg: #2b414b; --neutral-bg: #1b454f;
+  color-scheme: dark;
+}
+/* THEMES:END */
+
+/* The sell check. Layout: header, your tax rates, best to sell now, five totals, the
+   ranked table, one stock's detail (sell calculator, buy chart, purchases), purchases
+   turning long-term soon, and method notes. Shared styles come from base.css. */
+.taxbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: .86rem; color: var(--muted);
+}
+.taxbar .tb-h { font-weight: 600; color: var(--fg); }
+.taxbar .field { display: inline-flex; align-items: center; gap: 6px; }
+.taxbar input[type="number"] { width: 4.6em; }
+.taxbar .note { margin: 0; flex-basis: 100%; font-size: .8rem; }
+
+.best { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.best-card {
+  display: grid; gap: 8px; padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.best-card:hover { border-color: var(--lt); }
+.best-card:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.best-card .top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; }
+.best-card .rank { font: 400 1.25rem/1 var(--serif); color: var(--lt); }
+.best-card .tkr { font-size: 1.05rem; }
+.best-card .nm { display: inline; max-width: none; }
+.best-card dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-variant-numeric: tabular-nums; }
+.best-card dt { color: var(--muted); font-size: .74rem; }
+.best-card dd { margin: 0; font-weight: 600; }
+
+tr.pick { cursor: pointer; }
+tr.pick:hover td { background: var(--grid); }
+tr.pick:focus-visible { outline: 2px solid var(--lt); outline-offset: -2px; }
+tr.sel td { background: var(--lt-soft); }
+.p-none { background: var(--neutral-bg); color: var(--muted); }
+.p-st { background: color-mix(in srgb, var(--st) 22%, transparent); color: var(--fg); }
+.meter { position: relative; width: 90px; height: 10px; background: var(--grid); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--st); }
+.meter.hot i { background: var(--lt); }
+.meter b { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--muted); opacity: .6; }
+.gauge { display: inline-flex; align-items: center; cursor: help; border-radius: 4px; padding: 3px 0; }
+.gauge:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.split { width: 70px; height: 10px; display: inline-flex; gap: 2px; vertical-align: middle; margin-right: 8px; }
+.split i { background: var(--lt); border-radius: 3px 0 0 3px; }
+.split u { background: var(--st); opacity: .45; border-radius: 0 3px 3px 0; flex: 1; }
+
+.facts { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.facts span { color: var(--muted); }
+.calc { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.calc > summary {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 16px; cursor: pointer; list-style: none;
+}
+.calc > summary::-webkit-details-marker { display: none; }
+.calc > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+.calc[open] > summary::before { transform: rotate(90deg); }
+.calc > summary:focus-visible { outline: 2px solid var(--lt); outline-offset: -2px; border-radius: 10px; }
+.calc > summary .note { margin: 0; }
+.calc-body { display: grid; gap: 12px; padding: 0 16px 16px; }
+.lot-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+tr.grp td { background: var(--neutral-bg); font-weight: 600; }
+tr.grp { cursor: pointer; }
+tr.grp:hover td { background: var(--grid); }
+.grp-tog { all: unset; display: inline-flex; align-items: center; cursor: pointer; border-radius: 4px; }
+.grp-tog::before { content: "▸"; width: 1.3em; font-size: 1rem; color: var(--fg); transition: transform .15s; }
+tr.in td:first-child { padding-left: 32px; }
+.grp-tog[aria-expanded="true"]::before { transform: rotate(90deg); }
+.grp-tog:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+.lot-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.sw.sell { width: 11px; height: 10px; border-radius: 0; background: var(--warn); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.sw.buy-lt { background: var(--lt); }
+.sw.buy-st { border: 2px solid var(--st); background: var(--panel); }
+.calc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.calc-row label { font-weight: 600; font-size: .9rem; }
+.amt { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 4px 10px; }
+.amt input { width: 8em; border: 0; background: transparent; color: var(--fg); font: 600 1rem var(--sans); font-variant-numeric: tabular-nums; outline: none; }
+.amt:focus-within { outline: 2px solid var(--lt); outline-offset: 1px; }
+.quick { font: 600 .8rem var(--sans); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.quick:hover { border-color: var(--lt); }
+.quick:disabled { color: var(--muted); cursor: default; }
+.quick:focus-visible { outline: 2px solid var(--lt); outline-offset: 2px; }
+#calc-table { max-width: 700px; }
+#calc-table td.l { color: var(--muted); white-space: normal; }
+.verdict { margin: 0; padding: 10px 12px; border-radius: 8px; font-size: .9rem; max-width: 80ch; }
+.verdict.ok { background: var(--good-bg); color: var(--good); }
+.verdict.warn { background: var(--warn-bg); color: var(--warn); }
+
+#chart { min-height: 340px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.sw.lt { background: var(--lt); }
+.sw.st { border: 2px solid var(--st); background: var(--panel); }
+.sw.ln { width: 16px; height: 0; border-radius: 0; border-top: 2px solid var(--price); }
+.sw.ath { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--ath); }
+.sw.cut { width: 0; height: 12px; border-radius: 0; border-left: 2px solid var(--fg); opacity: .5; }
+
+@media (max-width: 760px) { .mid-only { display: none; } }
+@media (max-width: 640px) { #chart { min-height: 280px; } .best-card dl { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: no-preference) { tr.pick td { transition: background .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="head">
+  <div>
+    <h1>Sell check</h1>
+    <p class="sub" id="asof"></p>
+  </div>
+</header>
+<p class="lede" id="problem" hidden></p>
+
+<section class="taxbar" aria-label="Your tax rates">
+  <span class="tb-h">Your tax rates</span>
+  <label class="field">Income tax bracket
+    <select id="tx-ordinary">
+      <option value="0.10">10%</option><option value="0.12">12%</option><option value="0.22">22%</option>
+      <option value="0.24">24%</option><option value="0.32">32%</option><option value="0.35">35%</option><option value="0.37">37%</option>
+    </select>
+  </label>
+  <label class="field">Long-term rate
+    <select id="tx-long"><option value="0">0%</option><option value="0.15">15%</option><option value="0.20">20%</option></select>
+  </label>
+  <label class="field">State <input id="tx-state" type="number" min="0" max="20" step="0.1" inputmode="decimal"> %</label>
+  <label class="check"><input type="checkbox" id="tx-niit"> 3.8% investment income tax</label>
+  <p class="note">Used for the tax estimates on this page and kept in this browser. Rough estimates: deductions, limits and your other gains and losses aren't counted.</p>
+</section>
+
+<section aria-labelledby="best-h">
+  <div class="card-head" style="margin-bottom:10px">
+    <div>
+      <h2 id="best-h">Best to sell now</h2>
+      <p class="note" id="best-note"></p>
+    </div>
+  </div>
+  <div class="best" id="best"></div>
+</section>
+
+<section class="tiles" aria-label="Totals">
+  <div class="tile"><div class="k">You can sell as long-term</div><div class="v" id="t-ltv"></div><div class="s" id="t-ltv-s"></div></div>
+  <div class="tile"><div class="k">Long-term profit in it</div><div class="v" id="t-ltg"></div><div class="s" id="t-ltg-s"></div></div>
+  <div class="tile"><div class="k">Estimated tax if you sold it</div><div class="v" id="t-tax"></div><div class="s" id="t-tax-s"></div></div>
+  <div class="tile"><div class="k">Short-term shares</div><div class="v" id="t-stv"></div><div class="s" id="t-stv-s"></div></div>
+  <div class="tile"><div class="k">Turns long-term in 30 days</div><div class="v" id="t-soon"></div><div class="s" id="t-soon-s"></div></div>
+</section>
+
+<section class="card" id="rank">
+  <div>
+    <h2>Which stocks to sell now</h2>
+    <p class="note">Ranked by how close today's price is to the stock's all-time high. Only shares held over a year get the lower long-term rate. <b>Sell up to</b> is how many dollars you can sell with all of the profit long-term; <b>Est. tax</b> is the tax on that profit at your rates. Hover a gauge for the price and the all-time high; click a row to see every buy.</p>
+  </div>
+  <div class="legend">
+    <span><span class="meter hot" style="width:70px" aria-hidden="true"><i style="width:95%"></i><b style="left:80%"></b><b style="left:90%"></b></span>The bar fills to today's price as a share of the all-time high. The ticks mark 80% and 90%: past 90% is a sell candidate, 80–90% is near the high.</span>
+  </div>
+  <div class="scroll">
+    <table id="rank-table">
+      <thead><tr>
+        <th class="l">Stock</th><th class="l">Verdict</th><th class="l">Price vs all-time high</th>
+        <th class="l mid-only">Long-term shares</th><th>Sell up to (long-term)</th><th>Long-term profit</th><th>Est. tax</th>
+        <th class="mid-only">Short-term profit</th><th class="mid-only">Next turns long-term</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><span class="pill p-go">Sell candidate</span> long-term gain, within 10% of its high</span>
+    <span><span class="pill p-near">Near high</span> 10–20% below its high</span>
+    <span><span class="pill p-low">Below high</span> more than 20% below</span>
+    <span><span class="pill p-loss">At a loss</span> long-term shares are below cost</span>
+    <span><span class="pill p-wait">Not yet</span> no long-term shares</span>
+  </div>
+</section>
+
+<section class="card" id="detail">
+  <div>
+    <h2 id="d-title">All your purchases</h2>
+    <p class="note">Every purchase you still own, with what you paid, and every buy and sale on the chart. Pick a stock to see just that stock and to estimate the tax on selling it.</p>
+  </div>
+  <div class="seg" id="chips" role="group" aria-label="Choose a stock"></div>
+  <div class="facts" id="d-facts"></div>
+
+  <details class="calc" id="calc">
+    <summary><h3>Estimate the tax on a sale</h3><span class="note">Type a dollar amount to see which shares would go and the tax</span></summary>
+    <div class="calc-body">
+      <p class="note">When you sell by dollar amount, your broker chooses which shares go. This shows the two most likely orders side by side, with the estimated tax at your rates.</p>
+      <div class="calc-row">
+        <label for="calc-amt">Amount to sell</label>
+        <span class="amt"><span aria-hidden="true">$</span><input id="calc-amt" type="number" min="0" step="100" inputmode="decimal"></span>
+        <button class="quick" id="calc-safe" type="button"></button>
+        <button class="quick" id="calc-all" type="button"></button>
+      </div>
+      <div class="scroll">
+        <table id="calc-table">
+          <thead><tr><th class="l"></th><th>Oldest shares first</th><th>Losses first, then long-term</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="verdict" id="calc-verdict"></p>
+      <p class="verdict" id="calc-wash" hidden></p>
+    </div>
+  </details>
+
+  <div class="legend" id="legend-all">
+    <span><span class="sw buy-lt"></span>Buy over a year ago</span>
+    <span><span class="sw buy-st"></span>Buy in the last year</span>
+    <span><span class="sw sell"></span>Sale</span>
+    <span><span class="sw cut"></span>One year ago</span>
+    <span>Buys above the line, sales below; the farther from it, the larger (each grid line is 10× the one before)</span>
+  </div>
+  <div class="legend" id="legend-one" hidden>
+    <span><span class="sw lt"></span>Long-term buy</span>
+    <span><span class="sw st"></span>Short-term buy</span>
+    <span><span class="sw ln"></span>Weekly closing price</span>
+    <span><span class="sw ath"></span>All-time high</span>
+    <span><span class="sw cut"></span>One year ago</span>
+    <span><span class="sw sell"></span>Sale</span>
+    <span>Dot size = shares bought</span>
+  </div>
+  <div class="chart" id="chart"></div>
+
+  <div class="lot-head">
+    <div>
+      <h3>Purchases and cost basis</h3>
+      <p class="note" id="d-hint"></p>
+    </div>
+    <div class="lot-tools" id="group-wrap">
+      <label class="check"><input type="checkbox" id="group"> Group by stock</label>
+      <button class="quick" id="group-all" type="button" hidden>Expand all</button>
+    </div>
+  </div>
+  <div class="tall">
+    <table id="lot-table">
+      <thead><tr>
+        <th class="l" data-k="t" id="th-t"><button type="button">Stock</button></th><th class="l" data-k="d"><button type="button">Bought</button></th><th data-k="sh"><button type="button">Shares</button></th>
+        <th data-k="c"><button type="button">Cost / share</button></th><th class="mid-only" data-k="basis"><button type="button">Cost basis</button></th>
+        <th data-k="val"><button type="button">Value now</button></th><th data-k="gain"><button type="button">Gain</button></th>
+        <th class="mid-only" data-k="gp"><button type="button">Gain %</button></th><th data-k="lt"><button type="button">Long-term from</button></th>
+        <th class="l" data-k="L"><button type="button">Status</button></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" id="soon">
+  <div>
+    <h2>Turning long-term in the next 90 days</h2>
+    <p class="note">If you're close to one of these dates, waiting can mean paying the long-term rate instead of your income rate. <b>Tax saved by waiting</b> is the difference on today's profit, at your rates.</p>
+  </div>
+  <div class="tall">
+    <table id="soon-table">
+      <thead><tr><th class="l">Long-term from</th><th class="l">Stock</th><th>Shares</th><th class="mid-only">Cost basis</th><th>Value now</th><th>Gain</th><th>Tax saved by waiting</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" id="losses">
+  <div>
+    <h2>Losses you could use</h2>
+    <p class="note">Shares that are worth less than you paid. Selling them turns the loss into a deduction: it offsets gains, then up to $3,000 of other income a year, and the rest carries forward. <b>Tax it could offset</b> is the most it's worth at your rates. A loss is blocked (a wash sale) if you bought the same stock within 30 days before or after selling.</p>
+  </div>
+  <p class="note" id="loss-none" hidden>None of your shares are below what you paid.</p>
+  <div class="scroll">
+    <table id="loss-table">
+      <thead><tr><th class="l">Stock</th><th>Shares below cost</th><th>Short-term loss</th><th>Long-term loss</th><th>Tax it could offset</th><th class="l">Wash sale check</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" id="years">
+  <div>
+    <h2>Your sales by tax year</h2>
+    <p class="note" id="years-note"></p>
+  </div>
+  <div class="tiles" id="year-tiles"></div>
+  <div class="scroll">
+    <table id="year-table">
+      <thead><tr><th class="l">Year</th><th>Sales</th><th class="mid-only">Proceeds</th><th>Short-term gain</th><th>Long-term gain</th><th class="mid-only">Wash-sale losses not counted</th><th>Est. tax</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>How this is worked out</h2>
+  <ul class="notes">
+    <li id="n-source"></li>
+    <li id="n-method"></li>
+    <li id="n-warn" hidden></li>
+    <li id="n-wash"></li>
+    <li>Wash sale checks look only at this account's purchases of the same stock. Purchases in your other accounts (retirement accounts and a spouse's included), and of nearly identical funds, count too.</li>
+    <li>A share is long-term when it's sold after the one-year anniversary of its purchase. <b>Long-term from</b> is the first day that applies.</li>
+    <li>When you sell by dollar amount, your broker picks the shares. Some sell losing shares first, then the shares with the smallest tax (usually long-term gains); others sell the oldest first, the IRS default. Your long-term shares are your oldest, so selling up to their value creates no short-term gains under either rule. After a sale, your broker's cost basis details show which shares it used.</li>
+    <li><b>Sales by tax year</b> come from the sales in your export, with each sale's shares split into short- and long-term. Dividends, other accounts and losses carried over from earlier years aren't included.</li>
+    <li><b>Tax estimates</b> use the rates at the top: long-term gains at your long-term rate, short-term gains at your income tax bracket, plus your state rate and the 3.8% tax if you ticked it. A loss of one kind offsets a gain of the other. Deductions, limits and your other gains and losses for the year aren't counted.</li>
+    <li>Current prices and all-time highs come from Yahoo Finance when this report was made. The all-time high is the highest intraday price ever, adjusted for splits. The verdicts use simple cutoffs; being near a high doesn't predict where a price goes next.</li>
+    <li>This is a holding-period and tax estimate, not tax or investment advice.</li>
+  </ul>
+</section>
+
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+/* SHARED:BEGIN */
+'use strict';
+{
+// Helpers shared by the parser (lots.js), the performance page (perf.js) and the sell check
+// (report-template.html). The sell check carries a copy, so a saved report works offline;
+// scripts/sync.mjs keeps that copy in step with this file.
+
+// ---------- dates ----------
+const DAY_MS = 86400000;
+function anniversary(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (m === 2 && d === 29) return `${y + 1}-03-01`;
+  return `${y + 1}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+function addDays(iso, n) {
+  const t = new Date(iso + 'T00:00:00Z');
+  t.setUTCDate(t.getUTCDate() + n);
+  return t.toISOString().slice(0, 10);
+}
+const daysBetween = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / DAY_MS);
+
+// ---------- New York dates ----------
+// Trade dates and price times are the exchange's, so "today" is New York's day wherever
+// you are. `ms` is a time in milliseconds.
+const nyParts = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+function nyStamp(ms) {                           // 'YYYY-MM-DD HH:MM'
+  const p = Object.fromEntries(nyParts.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
+}
+const nyDay = (ms) => nyStamp(ms).slice(0, 10);
+
+// ---------- which shares a sale takes ----------
+// FIFO: oldest first (the IRS default). LIFO: newest first. HIFO: most expensive first.
+// TAXOPT: the tax-minimizing order some brokers use: losses first (short-term, then
+// long-term), then long-term gains, then short-term gains, most expensive first in each.
+// A lot's holding period starts at `held` when a wash sale moved it earlier, else at `d`.
+function sellOrder(lots, method, price, dateIso) {
+  const byDate = (a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+  if (method === 'FIFO') return [...lots].sort(byDate);
+  if (method === 'LIFO') return [...lots].sort((a, b) => byDate(b, a));
+  if (method === 'HIFO') return [...lots].sort((a, b) => b.c - a.c);
+  if (method === 'TAXOPT') {
+    const group = (l) => {
+      const long = dateIso > anniversary(l.held || l.d);
+      return l.c > price ? (long ? 1 : 0) : (long ? 2 : 3);
+    };
+    return [...lots].sort((a, b) => group(a) - group(b) || b.c - a.c || byDate(a, b));
+  }
+  throw new Error(`Unknown lot order: ${method}`);
+}
+
+// ---------- tax estimate ----------
+// Your rates as fractions: { ordinary, longTerm, state, niit }. Short-term gains are taxed
+// like income; long-term at the lower rate. State tax and the 3.8% net investment income
+// tax apply to both.
+const DEFAULT_TAX = { ordinary: 0.24, longTerm: 0.15, state: 0, niit: false };
+function taxRates(s = DEFAULT_TAX) {
+  const extra = (s.state || 0) + (s.niit ? 0.038 : 0);
+  return { short: s.ordinary + extra, long: s.longTerm + extra };
+}
+// Tax on a sale's long- and short-term gains. A loss of one kind first offsets a gain of
+// the other, as on a tax return. Losses themselves aren't counted as savings.
+function estimateTax(longGain, shortGain, rates) {
+  let lt = longGain, st = shortGain;
+  if (st < 0 && lt > 0) { lt = Math.max(0, lt + st); st = 0; }
+  else if (lt < 0 && st > 0) { st = Math.max(0, st + lt); lt = 0; }
+  return Math.max(0, lt) * rates.long + Math.max(0, st) * rates.short;
+}
+
+// ---------- selling at a loss ----------
+// What a sale's losses come to, and how much of them a wash sale would block. `lots` are one
+// stock's purchases ({ d, sh, c, lt }), `takes[i]` the shares sold from lots[i]. A loss is a
+// wash sale to the extent you bought the same stock in the 30 days before the sale and still
+// hold those shares afterwards (buying again in the 30 days after counts too, but that
+// hasn't happened yet). Losses are positive numbers.
+function lossSale(lots, takes, price, asof) {
+  const from = addDays(asof, -30);
+  const r = { sh: 0, stLoss: 0, ltLoss: 0, washSh: 0, washLoss: 0, lastBuy: null, clearOn: null };
+  let recentKept = 0;
+  lots.forEach((l, i) => {
+    const take = Math.min(l.sh, takes[i] || 0);
+    if (take > 1e-9 && l.c > price) {
+      r.sh += take;
+      r[asof >= l.lt ? 'ltLoss' : 'stLoss'] += take * (l.c - price);
+    }
+    if (l.d >= from && l.sh - take > 1e-9) {
+      recentKept += l.sh - take;
+      if (!r.lastBuy || l.d > r.lastBuy) r.lastBuy = l.d;
+    }
+  });
+  if (r.sh > 1e-9 && recentKept > 1e-9) {
+    r.washSh = Math.min(r.sh, recentKept);
+    r.washLoss = (r.stLoss + r.ltLoss) * (r.washSh / r.sh);
+    r.clearOn = addDays(r.lastBuy, 31);          // the first day the recent purchase no longer counts
+  } else r.lastBuy = null;
+  return r;
+}
+// The same, for selling every share that's below cost today.
+const harvest = (lots, price, asof) => lossSale(lots, lots.map((l) => (l.c > price ? l.sh : 0)), price, asof);
+
+// ---------- sales by tax year ----------
+// Gains and losses from sales, by calendar year, newest first. A wash sale's blocked loss
+// isn't counted that year (it moved into the replacement shares' cost). Returns null for a
+// result saved before sales were split into short- and long-term.
+function realizedByYear(realized) {
+  if (!realized?.length) return [];
+  if (realized.some((r) => r.st == null)) return null;
+  const years = {};
+  for (const r of realized) {
+    const y = (years[r.d.slice(0, 4)] ||= { year: r.d.slice(0, 4), sales: 0, proceeds: 0, st: 0, lt: 0, wash: 0 });
+    y.sales++; y.proceeds += r.proceeds;
+    y.st += r.st + (r.washSt || 0); y.lt += r.lt + (r.washLt || 0);
+    y.wash += r.disallowed || 0;
+  }
+  return Object.values(years).sort((a, b) => (a.year < b.year ? 1 : -1));
+}
+
+// ---------- hide amounts ----------
+// "Hide amounts" in the toolbar masks every dollar amount and share count, leaving
+// percentages, so a screenshot can be shared. Kept in this browser.
+let hidden = false;
+try { hidden = typeof window !== 'undefined' && window.localStorage.getItem('tlv-hide') === '1'; } catch {}
+const MASK = '•••';
+const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
+
+// ---------- formatting ----------
+const money = (v, dp = 0) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const signed = (v) => { v = Math.round(v); if (hidden) return sign(v) + '$' + MASK; return (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US'); };
+const compact = (v) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(v));
+const signedCompact = (v) => (v > 0 ? '+' : '') + compact(v);
+const pct = (v, dp = 1) => (v == null ? '—' : (v * 100).toFixed(dp) + '%');
+const signedPct = (v, dp = 1) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(dp) + '%');
+const num = (v, dp = 3) => hidden ? MASK : v.toLocaleString('en-US', { maximumFractionDigits: dp });
+const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const fmtMonth = (ym, short) => new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: short ? 'short' : 'long', year: short ? '2-digit' : 'numeric', timeZone: 'UTC' });
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const cls = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
+const clsUsd = (v) => cls(Math.round(v)); // dollars: no color for amounts that round to $0
+
+// ---------- company logos ----------
+// A small square logo beside a ticker, fetched through this site's /api/logo, so the logo
+// service sees Cloudflare, never you. The ticker's first letter shows until the image
+// loads, and stays if there's no logo (or in a saved report opened offline).
+const logo = (t, size = 20) =>
+  `<span class="logo" data-l="${esc(String(t)[0] || '')}" style="--s:${size}px" aria-hidden="true"><img src="api/logo?symbol=${encodeURIComponent(t)}" alt="" loading="lazy" decoding="async"></span>`;
+if (typeof document !== 'undefined') {
+  document.addEventListener('load', (e) => { if (e.target.matches?.('.logo img')) e.target.classList.add('ok'); }, true);
+  document.addEventListener('error', (e) => { if (e.target.matches?.('.logo img')) e.target.remove(); }, true);
+}
+
+// ---------- charts ----------
+const niceStep = (raw) => { const p = 10 ** Math.floor(Math.log10(raw || 1)), f = raw / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; };
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent?.appendChild(e);
+  return e;
+}
+
+const api = {
+  hidden, DAY_MS, anniversary, addDays, daysBetween, nyStamp, nyDay, sellOrder,
+  lossSale, harvest, realizedByYear,
+  DEFAULT_TAX, taxRates, estimateTax,
+  money, signed, compact, signedCompact, pct, signedPct, num, fmtDate, fmtMonth, esc, cls, clsUsd,
+  niceStep, svgEl, logo,
+};
+if (typeof module !== 'undefined' && module.exports) module.exports = api;
+else window.Shared = api;
+}
+/* SHARED:END */
+(() => {
+const S = window.Shared;
+// Say what went wrong instead of leaving the page half-drawn.
+function showProblem(err) {
+  const box = document.getElementById('problem');
+  box.innerHTML = `<b class="neg">This page couldn't be drawn:</b> ${S.esc(String(err?.message || err))}. Try <b>Refresh prices</b>, or upload your file again.`;
+  box.hidden = false;
+}
+addEventListener('error', (e) => showProblem(e.error || e.message));
+const D = JSON.parse(document.getElementById('data').textContent);
+const { money, signed, compact, signedCompact, pct, num, fmtDate, esc, cls, clsUsd, niceStep, addDays } = S;
+const el = S.svgEl;
+const $ = (id) => document.getElementById(id);
+const CLOSE = 0.90, NEAR = 0.80;               // verdict cutoffs (share of all-time high)
+const asof = D.asof.slice(0, 10);
+const ms = (iso) => Date.parse(iso + 'T00:00:00Z');
+const yearAgo = ms(addDays(asof, -365));
+
+// ---- notes about the data ----
+const M = D.meta || {};
+$('n-source').textContent =
+  `Purchases come from your Quicken export. Every buy and sell was replayed` +
+  (M.splits?.length ? `, including ${M.splits.length === 1 ? 'a split' : M.splits.length + ' splits'} (${M.splits.join(', ')})` : '') + '. ' +
+  (M.mismatches?.length ? `These stocks don't match the share count in the export: ${M.mismatches.join(', ')}.` : 'The result matches the share count in the export for every stock.');
+const unpriced = Object.keys(D.stocks).filter((t) => D.stocks[t].noPrice);
+if (unpriced.length) $('n-source').textContent += ` No price could be found for ${unpriced.join(', ')}, so ${unpriced.length === 1 ? "it's" : "they're"} valued at what you last paid.`;
+if (M.warnings?.length) {
+  $('n-warn').hidden = false;
+  $('n-warn').innerHTML = `<b>Check these against your broker:</b> ${M.warnings.map(esc).join('; ')}. Shares may have come from a transfer the export doesn't show.`;
+}
+$('n-method').textContent = "The export doesn't say which purchase each past sale came from, so oldest-first is assumed (the IRS default).";
+const wash = D.washSales || [];
+const washTotal = wash.reduce((s, w) => s + w.disallowed, 0);
+$('n-wash').innerHTML = wash.length
+  ? `<b>Wash sales:</b> ${wash.length} ${wash.length === 1 ? 'sale' : 'sales'} at a loss had the same stock bought within 30 days, so ${money(washTotal)} of losses ` +
+    `couldn't be claimed then. That amount was added to the cost of the replacement shares, and their holding period starts earlier. Those purchases are marked <b>Wash sale</b>.`
+  : '<b>Wash sales:</b> none found. A sale at a loss with the same stock bought within 30 days before or after would have its loss moved into the new shares’ cost.';
+
+// ---- your tax rates (kept in this browser) ----
+const TAX_KEY = 'tlv-tax';
+let tax = { ...S.DEFAULT_TAX };
+try { tax = { ...tax, ...JSON.parse(localStorage.getItem(TAX_KEY) || '{}') }; } catch {}
+let rates = S.taxRates(tax);
+const taxIn = { ordinary: $('tx-ordinary'), longTerm: $('tx-long'), state: $('tx-state'), niit: $('tx-niit') };
+taxIn.ordinary.value = tax.ordinary.toFixed(2);
+taxIn.longTerm.value = tax.longTerm.toFixed(2);
+taxIn.state.value = String(Math.round(tax.state * 1000) / 10);
+taxIn.niit.checked = !!tax.niit;
+function readTax() {
+  const state = Number(taxIn.state.value);
+  tax = {
+    ordinary: Number(taxIn.ordinary.value), longTerm: Number(taxIn.longTerm.value),
+    state: state >= 0 && state <= 20 ? state / 100 : 0, niit: taxIn.niit.checked,
+  };
+  rates = S.taxRates(tax);
+  try { localStorage.setItem(TAX_KEY, JSON.stringify(tax)); } catch {}
+  drawTaxParts();
+}
+Object.values(taxIn).forEach((i) => i.addEventListener('input', readTax));
+const taxOf = (lg, sg) => S.estimateTax(lg, sg, rates);
+
+// ---- per-lot and per-stock figures, as of the price snapshot ----
+const stocks = Object.entries(D.stocks).map(([t, s]) => {
+  const lots = s.lots.map((l) => {
+    const basis = l.sh * l.c, val = l.sh * s.price;
+    return { ...l, t, basis, val, gain: val - basis, gp: (s.price - l.c) / l.c, L: asof >= l.lt };
+  });
+  const lt = lots.filter((l) => l.L), st = lots.filter((l) => !l.L);
+  const sum = (a, k) => a.reduce((x, l) => x + l[k], 0);
+  const r = {
+    t, name: s.name, price: s.price, ath: s.ath, athDate: s.athDate, series: s.series, lots, noPrice: !!s.noPrice,
+    shares: sum(lots, 'sh'), ltSh: sum(lt, 'sh'), ltVal: sum(lt, 'val'), ltGain: sum(lt, 'gain'),
+    stVal: sum(st, 'val'), stGain: sum(st, 'gain'), toAth: s.price / s.ath,
+    next: st.length ? st.map((l) => l.lt).sort()[0] : null,
+  };
+  r.verdict = r.noPrice ? 'none' : r.ltSh < 1e-6 ? 'wait' : r.ltGain <= 0 ? 'loss' : r.toAth >= CLOSE ? 'go' : r.toAth >= NEAR ? 'near' : 'low';
+  return r;
+});
+const order = { go: 0, near: 1, low: 2, loss: 3, wait: 4, none: 5 };
+stocks.sort((a, b) => order[a.verdict] - order[b.verdict] || b.toAth - a.toAth);
+const label = { go: 'Sell candidate', near: 'Near high', low: 'Below high', loss: 'At a loss', wait: 'Not yet', none: 'No price' };
+const best = stocks.filter((s) => s.verdict === 'go' || s.verdict === 'near');
+const soonLots = stocks.flatMap((s) => s.lots.filter((l) => !l.L && l.lt <= addDays(asof, 90)).map((l) => ({ ...l, t: s.t })));
+const in30 = soonLots.filter((l) => l.lt <= addDays(asof, 30));
+const tot = (k) => stocks.reduce((x, s) => x + s[k], 0);
+const big = (v) => (Math.abs(v) < 10000 ? money(v) : compact(v)); // tiles: exact under $10K
+// every buy and sale, for the chart (a saved report carries them as D.trades)
+const trades = (D.trades || D.activity || []).filter((a) => (a.type === 'BUY' || a.type === 'SELL') && a.amount > 0)
+  .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+const savedByWaiting = (gain) => Math.max(0, gain) * (rates.short - rates.long);
+
+$('asof').textContent = `Prices as of ${fmtDate(asof)}, ${D.asof.slice(11)} New York time · ${stocks.length} stocks · ${stocks.reduce((n, s) => n + s.lots.length, 0)} purchases`;
+
+// ---- best to sell now ----
+function drawBest() {
+  $('best-note').textContent = best.length
+    ? 'Long-term shares at a gain, trading within 20% of their all-time high, closest first. Sell up to the amount shown and all of the profit is long-term.'
+    : 'None of your long-term shares at a gain are near their all-time high right now.';
+  $('best').innerHTML = best.map((s, i) => `
+    <button class="best-card" type="button" data-t="${esc(s.t)}">
+      <span class="top"><span class="rank">${i + 1}</span><span class="tkr">${S.logo(s.t, 24)}${esc(s.t)}</span><span class="nm">${esc(s.name)}</span><span class="pill p-${s.verdict}">${label[s.verdict]}</span></span>
+      <dl>
+        <div><dt>Price vs all-time high</dt><dd>${pct(s.toAth)}</dd></div>
+        <div><dt>Sell up to (long-term)</dt><dd>${money(Math.floor(s.ltVal))}</dd></div>
+        <div><dt>Long-term profit</dt><dd class="${clsUsd(s.ltGain)}">${signed(s.ltGain)}</dd></div>
+        <div><dt>Estimated tax</dt><dd>${money(taxOf(s.ltGain, 0))}</dd></div>
+      </dl>
+    </button>`).join('');
+}
+$('best').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) select(b.dataset.t, true); });
+
+// ---- totals ----
+function drawTiles() {
+  const ltv = tot('ltVal'), stv = tot('stVal'), ltg = tot('ltGain'), stg = tot('stGain');
+  $('t-ltv').textContent = big(ltv);
+  $('t-ltv-s').textContent = `${pct(ltv / (ltv + stv || 1))} of your stocks`;
+  $('t-ltg').textContent = Math.abs(ltg) < 10000 ? signed(ltg) : signedCompact(ltg);
+  $('t-ltg').className = 'v ' + clsUsd(ltg);
+  $('t-ltg-s').textContent = `At your long-term rate of ${pct(rates.long)}`;
+  $('t-tax').textContent = big(taxOf(ltg, 0));
+  $('t-tax-s').textContent = 'If you sold every long-term share today';
+  $('t-stv').textContent = big(stv);
+  $('t-stv-s').textContent = `Profit ${signed(stg)}, taxed at ${pct(rates.short)} if sold now`;
+  const v30 = in30.reduce((x, l) => x + l.val, 0), save30 = in30.reduce((x, l) => x + savedByWaiting(l.gain), 0);
+  $('t-soon').textContent = big(v30);
+  $('t-soon-s').textContent = in30.length
+    ? `${[...new Set(in30.map((l) => l.t))].join(', ')} · waiting saves about ${money(save30)}`
+    : 'Nothing';
+}
+
+// ---- ranked table ----
+let current = 'ALL';                         // all stocks until you pick one
+const rankBody = document.querySelector('#rank-table tbody');
+function drawRank() {
+  rankBody.innerHTML = stocks.map((s) => `
+    <tr class="pick${s.t === current ? ' sel' : ''}" tabindex="0" data-t="${esc(s.t)}">
+      <td class="l"><span class="stock">${S.logo(s.t, 26)}<span><span class="tkr">${esc(s.t)}</span><span class="nm" title="${esc(s.name)}">${esc(s.name)}</span></span></span></td>
+      <td class="l"><span class="pill p-${s.verdict}">${label[s.verdict]}</span></td>
+      <td class="l">${s.noPrice ? '<span class="note">No price found</span>' : `<span class="gauge" tabindex="0" data-t="${esc(s.t)}" aria-label="${esc(s.t)} is at ${pct(s.toAth)} of its all-time high: ${money(s.price, 2)} now, ${money(s.ath, 2)} at its high."><span class="meter ${s.verdict === 'go' || s.verdict === 'near' ? 'hot' : ''}"><i style="width:${Math.max(1, s.toAth * 100)}%"></i><b style="left:${NEAR * 100}%"></b><b style="left:${CLOSE * 100}%"></b></span>${pct(s.toAth)}</span>`}</td>
+      <td class="l mid-only"><span class="split"><i style="width:${(s.ltSh / s.shares) * 100}%"></i><u></u></span>${num(s.ltSh, 1)} of ${num(s.shares, 1)}</td>
+      <td>${s.ltSh ? money(Math.floor(s.ltVal)) : '—'}</td>
+      <td class="${clsUsd(s.ltGain)}">${s.ltSh ? signed(s.ltGain) : '—'}</td>
+      <td>${s.ltSh && s.ltGain > 0.5 ? money(taxOf(s.ltGain, 0)) : '—'}</td>
+      <td class="mid-only ${clsUsd(s.stGain)}">${s.shares - s.ltSh > 1e-6 ? signed(s.stGain) : '—'}</td>
+      <td class="mid-only">${s.next ? fmtDate(s.next) : 'All long-term'}</td>
+    </tr>`).join('');
+}
+rankBody.addEventListener('click', (e) => { if (e.target.closest('.gauge')) return; const tr = e.target.closest('tr[data-t]'); if (tr) select(tr.dataset.t, true); });
+rankBody.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tr = e.target.closest('tr[data-t]');
+  if (tr && e.target === tr) { e.preventDefault(); select(tr.dataset.t, true); }
+});
+
+// ---- one tooltip for gauges and the chart ----
+const tip = $('tip');
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(x + 14 + w > innerWidth ? x - w - 14 : x + 14, innerWidth - w - 8)) + 'px';
+  tip.style.top = Math.max(8, Math.min(y - h - 12, innerHeight - h - 8)) + 'px';
+}
+const hideTip = () => { tip.hidden = true; };
+function gaugeTip(g) {
+  const s = stocks.find((x) => x.t === g.dataset.t);
+  if (!s) return;
+  const r = g.getBoundingClientRect();
+  showTip(`<div class="h">${esc(s.t)} · ${pct(s.toAth)} of its all-time high</div>
+    <div class="r"><span>Price now</span><b>${money(s.price, 2)}</b></div>
+    <div class="r"><span>All-time high (${esc(s.athDate)})</span><b>${money(s.ath, 2)}</b></div>`, r.left, r.bottom + 70);
+}
+document.addEventListener('pointerover', (e) => { const g = e.target.closest?.('.gauge'); if (g) gaugeTip(g); });
+document.addEventListener('pointerout', (e) => { if (e.target.closest?.('.gauge') && !e.relatedTarget?.closest?.('.gauge')) hideTip(); });
+document.addEventListener('focusin', (e) => { const g = e.target.closest?.('.gauge'); if (g) gaugeTip(g); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideTip(); });
+addEventListener('scroll', hideTip, { passive: true });
+
+// ---- stock picker ----
+const chips = $('chips');
+chips.innerHTML = '<button type="button" data-t="ALL" aria-pressed="false">All stocks</button>' +
+  stocks.map((s) => `<button type="button" class="${s.ltSh ? '' : 'dim'}" data-t="${esc(s.t)}" aria-pressed="false">${esc(s.t)}</button>`).join('');
+chips.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) select(b.dataset.t); });
+
+// ---- purchases table ----
+let sortK = 'd', sortDir = 1;                  // oldest purchase first
+document.querySelectorAll('#lot-table th').forEach((th) => th.querySelector('button').addEventListener('click', () => {
+  const k = th.dataset.k;
+  sortDir = sortK === k ? -sortDir : 1;
+  sortK = k; drawLots();
+}));
+const groupBox = $('group');
+try { groupBox.checked = localStorage.getItem('tlv-group') === '1'; } catch {}
+groupBox.addEventListener('change', () => { try { localStorage.setItem('tlv-group', groupBox.checked ? '1' : '0'); } catch {} drawLots(); });
+function lotRow(l, all, inGroup = false) {
+  const washNote = l.wash ? `Cost includes ${money(l.wash.add, 2)} a share of loss that couldn't be claimed on a sale on ${fmtDate(l.wash.from)}; its holding period starts earlier.` : '';
+  return `<tr${inGroup ? ' class="in"' : ''}>
+    ${all ? `<td class="l tkr">${S.logo(l.t, 18)}${esc(l.t)}</td>` : ''}<td class="l">${fmtDate(l.d)}</td><td>${num(l.sh, 4)}</td>
+    <td${l.wash ? ` title="${esc(washNote)}"` : ''}>${money(l.c, 2)}</td><td class="mid-only">${money(l.basis, 2)}</td><td>${money(l.val, 2)}</td>
+    <td class="${clsUsd(l.gain)}">${signed(l.gain)}</td><td class="mid-only ${cls(l.gp)}">${(l.gp * 100).toFixed(1)}%</td>
+    <td>${fmtDate(l.lt)}</td>
+    <td class="l"><span class="pill ${l.L ? 'p-go' : 'p-st'}">${l.L ? 'Long-term' : 'Short-term'}</span>${l.wash ? ` <span class="pill p-wash" title="${esc(washNote)}">Wash sale</span>` : ''}</td>
+  </tr>`;
+}
+// Grouped, each stock is one subtotal line; click it to show its purchases. Which stocks
+// are open is kept in this browser.
+const OPEN_KEY = 'tlv-open-groups';
+let openGroups = new Set();
+try { openGroups = new Set(JSON.parse(localStorage.getItem(OPEN_KEY) || '[]')); } catch {}
+const saveOpen = () => { try { localStorage.setItem(OPEN_KEY, JSON.stringify([...openGroups])); } catch {} };
+function toggleGroup(t) {
+  if (openGroups.has(t)) openGroups.delete(t); else openGroups.add(t);
+  saveOpen(); drawLots();
+  document.querySelector(`#lot-table .grp-tog[data-t="${CSS.escape(t)}"]`)?.focus();
+}
+document.querySelector('#lot-table tbody').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr.grp');
+  if (tr) toggleGroup(tr.dataset.t);
+});
+$('group-all').addEventListener('click', () => {
+  const allOpen = stocks.every((s) => openGroups.has(s.t));
+  openGroups = allOpen ? new Set() : new Set(stocks.map((s) => s.t));
+  saveOpen(); drawLots();
+});
+// a stock's subtotal line when grouped
+function groupRow(s) {
+  const basis = s.lots.reduce((x, l) => x + l.basis, 0), val = s.ltVal + s.stVal, gain = val - basis;
+  const open = openGroups.has(s.t);
+  return `<tr class="grp" data-t="${esc(s.t)}">
+    <td class="l tkr"><button class="grp-tog" type="button" data-t="${esc(s.t)}" aria-expanded="${open}" aria-label="${open ? 'Hide' : 'Show'} ${esc(s.t)} purchases">${S.logo(s.t, 18)}${esc(s.t)}</button></td><td class="l">${s.lots.length} ${s.lots.length === 1 ? 'purchase' : 'purchases'}</td><td>${num(s.shares, 4)}</td>
+    <td>${money(basis / s.shares, 2)}</td><td class="mid-only">${money(basis, 2)}</td><td>${money(val, 2)}</td>
+    <td class="${clsUsd(gain)}">${signed(gain)}</td><td class="mid-only ${cls(gain)}">${((gain / basis) * 100).toFixed(1)}%</td>
+    <td>${s.next ? fmtDate(s.next) : ''}</td><td class="l">${num(s.ltSh, 2)} of ${num(s.shares, 2)} long-term</td>
+  </tr>`;
+}
+function drawLots() {
+  const all = current === 'ALL';
+  $('th-t').hidden = !all; $('group-wrap').hidden = !all;
+  $('group-all').hidden = !all || !groupBox.checked;
+  $('group-all').textContent = stocks.every((s) => openGroups.has(s.t)) ? 'Collapse all' : 'Expand all';
+  document.querySelectorAll('#lot-table th').forEach((th) => th.setAttribute('aria-sort', th.dataset.k === sortK ? (sortDir > 0 ? 'ascending' : 'descending') : 'none'));
+  const cmp = (a, b) => ((a[sortK] > b[sortK] ? 1 : a[sortK] < b[sortK] ? -1 : 0) * sortDir) || (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+  const body = document.querySelector('#lot-table tbody');
+  if (!all) body.innerHTML = [...stocks.find((x) => x.t === current).lots].sort(cmp).map((l) => lotRow(l, false)).join('');
+  else if (groupBox.checked) body.innerHTML = stocks.map((s) => groupRow(s) + (openGroups.has(s.t) ? [...s.lots].sort(cmp).map((l) => lotRow(l, true, true)).join('') : '')).join('');
+  else body.innerHTML = stocks.flatMap((s) => s.lots).sort(cmp).map((l) => lotRow(l, true)).join('');
+}
+
+// The stock you're looking at and the amount typed survive a reload (this tab only), so an
+// automatic price update doesn't send you back to the start.
+const SEL = 'tlv-sel';
+const remember = (amt = null) => { try { sessionStorage.setItem(SEL, JSON.stringify({ t: current, amt })); } catch {} };
+function select(t, scroll) {
+  current = t;
+  remember();
+  const all = t === 'ALL';
+  rankBody.querySelectorAll('tr').forEach((tr) => tr.classList.toggle('sel', tr.dataset.t === t));
+  chips.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
+  $('legend-all').hidden = !all; $('legend-one').hidden = all; $('calc').hidden = all || S.hidden;          // its amount box would show dollars
+  if (all) {
+    const lots = stocks.flatMap((s) => s.lots), sum = (k) => lots.reduce((x, l) => x + l[k], 0);
+    const ltv = tot('ltVal'), stv = tot('stVal');
+    $('d-title').textContent = 'All your purchases';
+    $('d-facts').innerHTML = [
+      ['Value now', money(ltv + stv)], ['Cost basis', money(sum('basis'))], ['Gain', `<b class="${clsUsd(sum('gain'))}">${signed(sum('gain'))}</b>`],
+      ['Long-term', `${money(ltv)} · ${signed(tot('ltGain'))}`], ['Short-term', `${money(stv)} · ${signed(tot('stGain'))}`],
+      ['Buys and sales', `${trades.filter((a) => a.type === 'BUY').length} · ${trades.filter((a) => a.type === 'SELL').length}`],
+    ].map(([k, v]) => `<div><span>${k}</span> ${v}</div>`).join('');
+    $('d-hint').textContent = `All ${lots.length} purchases you still own, oldest first. Long-term rows can be sold at the lower rate.`;
+  } else {
+    const s = stocks.find((x) => x.t === t);
+    $('d-title').textContent = `Every ${s.t} buy`;
+    const avg = s.lots.reduce((x, l) => x + l.basis, 0) / s.shares;
+    $('d-facts').innerHTML = [
+      ['Price', money(s.price, 2)], ['All-time high', `${money(s.ath, 2)} (${esc(s.athDate)})`], ['Price vs high', pct(s.toAth)],
+      ['Avg cost / share', money(avg, 2)], ['Long-term', `${num(s.ltSh, 2)} sh · ${money(s.ltVal)} · ${signed(s.ltGain)}`],
+      ['Short-term', `${num(s.shares - s.ltSh, 2)} sh · ${money(s.stVal)} · ${signed(s.stGain)}`],
+    ].map(([k, v]) => `<div><span>${k}</span> ${v}</div>`).join('');
+    $('d-hint').textContent = s.ltSh
+      ? `Every purchase of ${s.t}, with what you paid. Long-term rows can be sold at the lower rate.`
+      : `${s.t} has no long-term shares yet. The first ones qualify on ${fmtDate(s.next)}.`;
+    setCalc(s, Math.floor(s.ltVal));
+  }
+  drawLots(); drawChart();
+  if (scroll) $('detail').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+}
+
+// ---- sell calculator: the two orders a broker may use (see shared.js) ----
+function simulate(s, dollars, method) {
+  let need = Math.min(dollars / s.price, s.shares);
+  const r = { sh: 0, ltSh: 0, stSh: 0, ltGain: 0, stGain: 0 };
+  const takes = new Map();
+  for (const l of S.sellOrder(s.lots, method, s.price, asof)) {
+    if (need <= 1e-9) break;
+    const take = Math.min(l.sh, need), gain = take * (s.price - l.c);
+    need -= take; r.sh += take; takes.set(l, take);
+    if (l.L) { r.ltSh += take; r.ltGain += gain; } else { r.stSh += take; r.stGain += gain; }
+  }
+  // losses in this sale, and the part a recent purchase would block (see shared.js)
+  r.loss = S.lossSale(s.lots, s.lots.map((l) => takes.get(l) || 0), s.price, asof);
+  const lossAll = r.loss.stLoss + r.loss.ltLoss, blocked = lossAll > 0 ? r.loss.washLoss / lossAll : 0;
+  r.tax = taxOf(r.ltGain + r.loss.ltLoss * blocked, r.stGain + r.loss.stLoss * blocked);
+  return r;
+}
+const calcAmt = $('calc-amt');
+const calcBox = $('calc');                      // folded away until you open it; remembered in this browser
+try { calcBox.open = localStorage.getItem('tlv-calc-open') === '1'; } catch {}
+calcBox.addEventListener('toggle', () => { try { localStorage.setItem('tlv-calc-open', calcBox.open ? '1' : '0'); } catch {} });
+function setCalc(s, dollars) {
+  const safe = Math.floor(s.ltVal), all = Math.floor(s.ltVal + s.stVal);
+  const safeBtn = $('calc-safe'), allBtn = $('calc-all');
+  safeBtn.textContent = s.ltSh ? `All long-term: ${money(safe)}` : 'No long-term shares yet';
+  safeBtn.disabled = !s.ltSh;
+  safeBtn.onclick = () => { calcAmt.value = safe; drawCalc(); };
+  allBtn.textContent = `Everything: ${money(all)}`;
+  allBtn.onclick = () => { calcAmt.value = all; drawCalc(); };
+  calcAmt.max = all;
+  calcAmt.value = dollars;
+  drawCalc();
+}
+function drawCalc() {
+  if (current === 'ALL') return;
+  const s = stocks.find((x) => x.t === current);
+  const dollars = Math.max(0, Number(calcAmt.value) || 0);
+  const a = simulate(s, dollars, 'FIFO'), b = simulate(s, dollars, 'TAXOPT');
+  const row = (name, f) => `<tr><td class="l">${name}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`;
+  document.querySelector('#calc-table tbody').innerHTML = [
+    row('Shares sold', (r) => num(r.sh, 3)),
+    row('From long-term shares', (r) => num(r.ltSh, 3)),
+    row('From short-term shares', (r) => num(r.stSh, 3)),
+    row('<b>Long-term profit</b> (lower rate)', (r) => `<b class="${clsUsd(r.ltGain)}">${signed(r.ltGain)}</b>`),
+    row('<b>Short-term profit</b> (income rate)', (r) => `<b class="${clsUsd(r.stGain)}">${signed(r.stGain)}</b>`),
+    ...(a.loss.washLoss >= 0.5 || b.loss.washLoss >= 0.5 ? [row('Loss blocked as a wash sale', (r) => (r.loss.washLoss >= 0.5 ? money(r.loss.washLoss) : '—'))] : []),
+    row('<b>Estimated tax</b> at your rates', (r) => `<b>${money(r.tax)}</b>`),
+  ].join('');
+  // wash sale check, for whichever order loses more to it
+  const w = $('calc-wash');
+  const worst = a.loss.washLoss >= b.loss.washLoss ? a.loss : b.loss;
+  const anyLoss = Math.max(a.loss.stLoss + a.loss.ltLoss, b.loss.stLoss + b.loss.ltLoss);
+  if (dollars && worst.washLoss >= 0.5) {
+    w.hidden = false; w.className = 'verdict warn';
+    w.textContent = `Wash sale: this sale includes shares sold at a loss, and you bought ${s.t} on ${fmtDate(worst.lastBuy)}, within 30 days. ` +
+      `About ${money(worst.washLoss)} of the loss couldn't be claimed now; it would be added to the newer shares' cost instead. ` +
+      `To claim all of it, sell on or after ${fmtDate(worst.clearOn)}.`;
+  } else if (dollars && anyLoss >= 0.5) {
+    w.hidden = false; w.className = 'verdict';
+    w.textContent = `This sale includes up to ${money(anyLoss)} of losses. To keep them, don't buy ${s.t} again before ${fmtDate(addDays(asof, 31))}: a purchase within 30 days after the sale blocks the loss.`;
+  } else w.hidden = true;
+  const v = $('calc-verdict');
+  const worstSt = Math.max(Math.round(a.stGain), Math.round(b.stGain));
+  if (!dollars) { v.className = 'verdict'; v.textContent = ''; return; }
+  if (worstSt <= 0) {
+    v.className = 'verdict ok';
+    v.textContent = `Selling ${money(dollars)} of ${s.t} creates no short-term profit either way, so all of the profit is taxed at the long-term rate: about ${money(Math.max(a.tax, b.tax))} in tax.`;
+  } else {
+    v.className = 'verdict warn';
+    v.textContent = `Selling ${money(dollars)} of ${s.t} could create up to ${money(worstSt)} of short-term profit, taxed at your income rate (about ${money(Math.max(a.tax, b.tax))} in tax). ` +
+      (s.ltSh ? `Sell ${money(Math.floor(s.ltVal))} or less to keep it all long-term.` : `${s.t} has no long-term shares until ${fmtDate(s.next)}.`);
+  }
+}
+calcAmt.addEventListener('input', () => { drawCalc(); remember(calcAmt.value); });
+
+// ---- buy chart ----
+const chartEl = $('chart');
+const tri = (x, y, r) => `M${x - r},${y - r * 0.8}L${x + r},${y - r * 0.8}L${x},${y + r * 0.9}Z`; // a sale: downward triangle
+function drawChart() {
+  chartEl.querySelector('svg')?.remove();
+  if (current === 'ALL') return drawTrades();
+  const s = stocks.find((x) => x.t === current);
+  if (!s.series?.length) return;
+  const sells = trades.filter((a) => a.type === 'SELL' && a.t === s.t);
+  const W = Math.max(320, chartEl.clientWidth), H = W < 560 ? 280 : 340;
+  const m = { t: 16, r: 14, b: 26, l: 58 };
+  const series = s.series.map(([d, c]) => [ms(d), c]);
+  const x0 = Math.min(series[0][0], ms(s.lots[0].d), ...sells.map((a) => ms(a.d))), x1 = ms(asof);
+  const vals = series.map((p) => p[1]).concat(s.lots.map((l) => l.c), sells.map((a) => a.price), [s.price]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const athOn = s.ath <= hi * 1.6;               // keep a far-off old high from flattening the chart
+  if (athOn) hi = Math.max(hi, s.ath);
+  const pad = (hi - lo) * 0.08; lo = Math.max(0, lo - pad); hi += pad;
+  const X = (t) => m.l + ((t - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);
+  const Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${s.t} purchase prices and weekly closes` });
+  chartEl.appendChild(svg);
+
+  const step = niceStep((hi - lo) / 5);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)' }, svg);
+    el('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, svg).textContent = money(v, step < 1 ? 2 : 0);
+  }
+  const d = new Date(x0); d.setUTCDate(1); d.setUTCMonth(Math.floor(d.getUTCMonth() / 3) * 3 + 3);
+  const every = W < 560 ? 6 : 3;
+  for (; d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + every)) {
+    el('line', { x1: X(d.getTime()), x2: X(d.getTime()), y1: H - m.b, y2: H - m.b + 4, stroke: 'var(--line)' }, svg);
+    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  }
+  el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: 'var(--line)' }, svg);
+
+  if (yearAgo > x0) {                           // labels sit at the bottom, clear of the all-time high line
+    el('rect', { x: m.l, y: m.t, width: X(yearAgo) - m.l, height: H - m.t - m.b, fill: 'var(--lt-soft)', opacity: 0.45 }, svg);
+    el('line', { x1: X(yearAgo), x2: X(yearAgo), y1: m.t, y2: H - m.b, stroke: 'var(--fg)', 'stroke-opacity': 0.45, 'stroke-width': 1.5 }, svg);
+    el('text', { x: X(yearAgo) - 6, y: H - m.b - 8, 'text-anchor': 'end', style: 'fill:var(--lt);font-weight:600' }, svg).textContent = '← long-term';
+    el('text', { x: X(yearAgo) + 6, y: H - m.b - 8, 'text-anchor': 'start' }, svg).textContent = 'short-term →';
+  }
+  if (athOn) {
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(s.ath), y2: Y(s.ath), stroke: 'var(--ath)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }, svg);
+    el('text', { x: W - m.r, y: Y(s.ath) - 6, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = `All-time high ${money(s.ath, 2)}`;
+  } else {
+    el('text', { x: W - m.r, y: m.t + 12, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = `All-time high ${money(s.ath, 2)} (${s.athDate}, off chart)`;
+  }
+  el('path', { d: series.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(''), fill: 'none', stroke: 'var(--price)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: 0.8 }, svg);
+  el('circle', { cx: X(x1), cy: Y(s.price), r: 4, fill: 'var(--price)', stroke: 'var(--panel)', 'stroke-width': 2 }, svg);
+
+  // one dot per purchase day, area by shares
+  const byDay = new Map();
+  s.lots.forEach((l) => { const g = byDay.get(l.d) || { d: l.d, sh: 0, basis: 0, L: l.L, lt: l.lt, wash: false }; g.sh += l.sh; g.basis += l.basis; g.wash ||= !!l.wash; byDay.set(l.d, g); });
+  const pts = [...byDay.values()].map((g) => ({ ...g, c: g.basis / g.sh, x: X(ms(g.d)) }));
+  pts.forEach((p) => { p.y = Y(p.c); });
+  const maxSh = Math.max(...pts.map((p) => p.sh));
+  const sold = sells.map((a) => ({ ...a, sell: true, x: X(ms(a.d)), y: Y(a.price) }));
+  const R = (sh) => 3 + 9 * Math.sqrt(sh / maxSh);
+  const hl = el('circle', { r: 0, fill: 'none', stroke: 'var(--fg)', 'stroke-width': 2 }, svg);
+  [...pts].sort((a, b) => b.sh - a.sh).forEach((p) => {
+    el('circle', p.L
+      ? { cx: p.x, cy: p.y, r: R(p.sh), fill: 'var(--lt)', 'fill-opacity': 0.85, stroke: 'var(--panel)', 'stroke-width': 1.5 }
+      : { cx: p.x, cy: p.y, r: R(p.sh), fill: 'var(--panel)', stroke: 'var(--st)', 'stroke-width': 2 }, svg);
+  });
+  sold.forEach((p) => el('path', { d: tri(p.x, p.y, 6), fill: 'var(--warn)', stroke: 'var(--panel)', 'stroke-width': 1.5 }, svg));
+  svg.appendChild(hl);
+
+  svg.addEventListener('pointermove', (e) => {
+    const rect = svg.getBoundingClientRect(), k = W / rect.width;
+    const mx = (e.clientX - rect.left) * k, my = (e.clientY - rect.top) * k;
+    let near = null, bd = 24 * 24;
+    pts.concat(sold).forEach((p) => { const dd = (p.x - mx) ** 2 + (p.y - my) ** 2; if (dd < bd) { bd = dd; near = p; } });
+    if (near?.sell) {
+      showTip(tradeTip(near), e.clientX, e.clientY);
+      hl.setAttribute('cx', near.x); hl.setAttribute('cy', near.y); hl.setAttribute('r', 10);
+    } else if (near) {
+      const g = near.sh * s.price - near.basis;
+      showTip(`<div class="h">Bought ${fmtDate(near.d)}</div>
+        <div class="r"><span>Shares</span><b>${num(near.sh, 4)}</b></div>
+        <div class="r"><span>Cost / share</span><b>${money(near.c, 2)}</b></div>
+        <div class="r"><span>Cost basis</span><b>${money(near.basis, 2)}</b></div>
+        <div class="r"><span>Gain now</span><b class="${clsUsd(g)}">${signed(g)}</b></div>
+        <div class="r"><span>${near.L ? 'Long-term since' : 'Long-term from'}</span><b>${fmtDate(near.lt)}</b></div>` +
+        (near.wash ? '<div class="t">Wash sale: cost includes a loss that couldn’t be claimed earlier.</div>' : ''), e.clientX, e.clientY);
+      hl.setAttribute('cx', near.x); hl.setAttribute('cy', near.y); hl.setAttribute('r', R(near.sh) + 3);
+    } else if (mx >= m.l && mx <= W - m.r) {
+      const t = x0 + ((mx - m.l) / (W - m.l - m.r)) * (x1 - x0);
+      let q = series[0]; series.forEach((p) => { if (Math.abs(p[0] - t) < Math.abs(q[0] - t)) q = p; });
+      showTip(`<div class="h">Week of ${fmtDate(new Date(q[0]).toISOString().slice(0, 10))}</div><div class="r"><span>Close</span><b>${money(q[1], 2)}</b></div>`, e.clientX, e.clientY);
+      hl.setAttribute('cx', X(q[0])); hl.setAttribute('cy', Y(q[1])); hl.setAttribute('r', 4);
+    }
+  });
+  svg.addEventListener('pointerleave', () => { hideTip(); hl.setAttribute('r', 0); });
+}
+
+function tradeTip(a) {
+  return `<div class="h">${esc(a.t)} · ${a.type === 'SELL' ? 'Sold' : 'Bought'} ${fmtDate(a.d)}</div>
+    <div class="r"><span>Shares</span><b>${num(a.sh, 4)}</b></div>
+    <div class="r"><span>Price</span><b>${money(a.price, 2)}</b></div>
+    <div class="r"><span>${a.type === 'SELL' ? 'Proceeds' : 'Paid'}</span><b>${money(a.amount, 2)}</b></div>`;
+}
+
+// all stocks: every buy (above the line) and sale (below), by date and dollar amount
+function drawTrades() {
+  if (!trades.length) return;
+  const W = Math.max(320, chartEl.clientWidth), H = W < 560 ? 340 : 440;
+  const m = { t: 16, r: 14, b: 26, l: 64 };
+  const x0 = ms(trades[0].d), x1 = ms(asof);
+  // Log scale: each grid line is 10 times the one before, so a $50 buy and a $20K sale
+  // both have room. Distance from the middle line grows with the amount, from FLOOR.
+  const FLOOR = 10 ** Math.floor(Math.log10(Math.max(1, Math.min(...trades.map((a) => a.amount)))));
+  const L = (v) => Math.log10(Math.max(v, FLOOR) / FLOOR);
+  const maxOf = (type) => Math.max(0, ...trades.filter((a) => a.type === type).map((a) => a.amount));
+  const hi = L(maxOf('BUY')) + 0.3 || 1, lo = maxOf('SELL') ? -(L(maxOf('SELL')) + 0.3) : 0; // room for the Bought / Sold labels
+  const X = (t) => m.l + ((t - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);
+  const Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);   // v: signed log amount
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Every buy and sale by date and dollar amount' });
+  chartEl.appendChild(svg);
+
+  for (const side of [1, -1]) {
+    for (let k = 1; k <= (side > 0 ? hi : -lo); k++) {
+      el('line', { x1: m.l, x2: W - m.r, y1: Y(side * k), y2: Y(side * k), stroke: 'var(--grid)' }, svg);
+      el('text', { x: m.l - 8, y: Y(side * k) + 4, 'text-anchor': 'end' }, svg).textContent = compact(FLOOR * 10 ** k);
+    }
+  }
+  const d = new Date(x0); d.setUTCDate(1); d.setUTCMonth(Math.floor(d.getUTCMonth() / 3) * 3 + 3);
+  const every = W < 560 ? 6 : 3;
+  for (; d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + every)) {
+    el('line', { x1: X(d.getTime()), x2: X(d.getTime()), y1: H - m.b, y2: H - m.b + 4, stroke: 'var(--line)' }, svg);
+    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  }
+  el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: 'var(--line)' }, svg);
+  if (yearAgo > x0) {
+    el('rect', { x: m.l, y: m.t, width: X(yearAgo) - m.l, height: H - m.t - m.b, fill: 'var(--lt-soft)', opacity: 0.45 }, svg);
+    el('line', { x1: X(yearAgo), x2: X(yearAgo), y1: m.t, y2: H - m.b, stroke: 'var(--fg)', 'stroke-opacity': 0.45, 'stroke-width': 1.5 }, svg);
+  }
+  el('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1.5 }, svg);
+  el('text', { x: m.l + 6, y: m.t + 12, style: 'font-weight:600' }, svg).textContent = '↑ Bought';
+  if (lo < 0) el('text', { x: m.l + 6, y: H - m.b - 8, style: 'font-weight:600' }, svg).textContent = '↓ Sold';
+
+  const pts = trades.map((a) => ({ ...a, x: X(ms(a.d)), y: Y(a.type === 'SELL' ? -L(a.amount) : L(a.amount)) }));
+  pts.forEach((p) => {
+    if (p.type === 'SELL') el('path', { d: tri(p.x, p.y, 6), fill: 'var(--warn)', stroke: 'var(--panel)', 'stroke-width': 1.5 }, svg);
+    else if (ms(p.d) < yearAgo) el('circle', { cx: p.x, cy: p.y, r: 4, fill: 'var(--lt)', 'fill-opacity': 0.85, stroke: 'var(--panel)', 'stroke-width': 1.5 }, svg);
+    else el('circle', { cx: p.x, cy: p.y, r: 3.5, fill: 'var(--panel)', stroke: 'var(--st)', 'stroke-width': 1.5 }, svg);
+  });
+  const hl = el('circle', { r: 0, fill: 'none', stroke: 'var(--fg)', 'stroke-width': 2 }, svg);
+
+  svg.addEventListener('pointermove', (e) => {
+    const rect = svg.getBoundingClientRect(), k = W / rect.width;
+    const mx = (e.clientX - rect.left) * k, my = (e.clientY - rect.top) * k;
+    let near = null, bd = 24 * 24;
+    pts.forEach((p) => { const dd = (p.x - mx) ** 2 + (p.y - my) ** 2; if (dd < bd) { bd = dd; near = p; } });
+    if (!near) { hideTip(); hl.setAttribute('r', 0); return; }
+    showTip(tradeTip(near), e.clientX, e.clientY);
+    hl.setAttribute('cx', near.x); hl.setAttribute('cy', near.y); hl.setAttribute('r', 9);
+  });
+  svg.addEventListener('pointerleave', () => { hideTip(); hl.setAttribute('r', 0); });
+}
+
+// ---- turning long-term soon ----
+function drawSoon() {
+  const rows = new Map();
+  soonLots.forEach((l) => {
+    const key = l.lt + '|' + l.t;
+    const g = rows.get(key) || { lt: l.lt, t: l.t, sh: 0, basis: 0, val: 0, gain: 0 };
+    g.sh += l.sh; g.basis += l.basis; g.val += l.val; g.gain += l.gain;
+    rows.set(key, g);
+  });
+  document.querySelector('#soon-table tbody').innerHTML = [...rows.values()]
+    .sort((a, b) => (a.lt < b.lt ? -1 : a.lt > b.lt ? 1 : a.t < b.t ? -1 : 1))
+    .map((g) => `<tr><td class="l">${fmtDate(g.lt)}</td><td class="l tkr">${S.logo(g.t, 18)}${esc(g.t)}</td><td>${num(g.sh, 3)}</td><td class="mid-only">${money(g.basis)}</td><td>${money(g.val)}</td>
+      <td class="${clsUsd(g.gain)}">${signed(g.gain)}</td><td>${g.gain > 0.5 ? money(savedByWaiting(g.gain)) : '—'}</td></tr>`).join('')
+    || '<tr><td class="l" colspan="7">Nothing turns long-term in the next 90 days.</td></tr>';
+}
+
+// ---- losses you could use ----
+// every stock's shares below cost, as if all were sold today (see shared.js)
+const lossRows = stocks.map((s) => ({ s, h: S.harvest(s.lots, s.price, asof) }))
+  .filter((r) => r.h.stLoss + r.h.ltLoss >= 0.5)
+  .sort((a, b) => (b.h.stLoss + b.h.ltLoss) - (a.h.stLoss + a.h.ltLoss));
+function drawLosses() {
+  const safeBy = fmtDate(addDays(asof, 31));
+  document.querySelector('#loss-table tbody').innerHTML = lossRows.map(({ s, h }) => `
+    <tr class="pick" tabindex="0" data-t="${esc(s.t)}">
+      <td class="l"><span class="stock">${S.logo(s.t, 26)}<span><span class="tkr">${esc(s.t)}</span><span class="nm" title="${esc(s.name)}">${esc(s.name)}</span></span></span></td>
+      <td>${num(h.sh, 3)}</td>
+      <td class="${h.stLoss >= 0.5 ? 'neg' : ''}">${h.stLoss >= 0.5 ? signed(-h.stLoss) : '—'}</td>
+      <td class="${h.ltLoss >= 0.5 ? 'neg' : ''}">${h.ltLoss >= 0.5 ? signed(-h.ltLoss) : '—'}</td>
+      <td>${money(h.stLoss * rates.short + h.ltLoss * rates.long)}</td>
+      <td class="l" style="white-space:normal">${h.washLoss >= 0.5
+        ? `<span class="pill p-wash">Wait until ${fmtDate(h.clearOn)}</span> You bought more on ${fmtDate(h.lastBuy)}; selling now would block about ${money(h.washLoss)} of the loss.`
+        : `<span class="pill p-go">Clear to sell</span> Don't buy it again before ${safeBy}.`}</td>
+    </tr>`).join('');
+  document.getElementById('loss-table').hidden = !lossRows.length;
+  $('loss-none').hidden = !!lossRows.length;
+}
+const pickRow = (e) => { const tr = e.target.closest('tr[data-t]'); if (tr && (e.type === 'click' || (e.target === tr && (e.key === 'Enter' || e.key === ' ')))) { e.preventDefault(); select(tr.dataset.t, true); } };
+document.querySelector('#loss-table tbody').addEventListener('click', pickRow);
+document.querySelector('#loss-table tbody').addEventListener('keydown', pickRow);
+
+// ---- your sales by tax year ----
+function drawYears() {
+  const years = S.realizedByYear(D.realized);
+  const tiles = $('year-tiles'), body = document.querySelector('#year-table tbody');
+  if (!years || !years.length) {
+    tiles.innerHTML = '';
+    $('years-note').textContent = years ? "You haven't sold anything yet, so there are no gains to report." : 'This result was saved before sales were split by tax year. Upload your file again to see them.';
+    body.innerHTML = '';
+    document.getElementById('year-table').hidden = true;
+    return;
+  }
+  const thisYear = asof.slice(0, 4);
+  const cur = years.find((y) => y.year === thisYear) || { st: 0, lt: 0, sales: 0 };
+  $('years-note').textContent = `Gains and losses from the sales in your export. The estimated tax uses your rates at the top; dividends and other accounts aren't included.`;
+  // losses you could still take today, leaving out what a wash sale would block
+  let availSt = 0, availLt = 0;
+  for (const { h } of lossRows) {
+    const keep = 1 - h.washLoss / (h.stLoss + h.ltLoss);
+    availSt += h.stLoss * keep; availLt += h.ltLoss * keep;
+  }
+  const taxNow = taxOf(cur.lt, cur.st), taxAfter = taxOf(cur.lt - availLt, cur.st - availSt);
+  const net = cur.st + cur.lt;
+  const tile = (k, v, c, sub) => `<div class="tile"><div class="k">${k}</div><div class="v ${c}">${v}</div><div class="s">${sub}</div></div>`;
+  tiles.innerHTML =
+    tile(`${thisYear} short-term gain so far`, signed(cur.st), clsUsd(cur.st), `Taxed at ${pct(rates.short)}`) +
+    tile(`${thisYear} long-term gain so far`, signed(cur.lt), clsUsd(cur.lt), `Taxed at ${pct(rates.long)}`) +
+    tile(`Estimated tax on ${thisYear} sales`, money(taxNow), '', net < -0.5 ? 'A net loss: up to $3,000 offsets other income, the rest carries forward' : `${cur.sales} ${cur.sales === 1 ? 'sale' : 'sales'} this year`) +
+    tile('Losses you could still use', money(availSt + availLt), '', availSt + availLt < 0.5 ? 'Nothing is below cost' : taxNow - taxAfter >= 0.5 ? `Selling them would cut this year's tax by about ${money(taxNow - taxAfter)}` : 'No gains to offset yet this year');
+  document.getElementById('year-table').hidden = false;
+  body.innerHTML = years.map((y) => `<tr>
+      <td class="l tkr">${y.year}</td><td>${y.sales}</td><td class="mid-only">${money(y.proceeds)}</td>
+      <td class="${clsUsd(y.st)}">${signed(y.st)}</td><td class="${clsUsd(y.lt)}">${signed(y.lt)}</td>
+      <td class="mid-only">${y.wash >= 0.5 ? money(y.wash) : '—'}</td><td>${money(taxOf(y.lt, y.st))}</td>
+    </tr>`).join('');
+}
+
+// everything that depends on your tax rates
+function drawTaxParts() { drawBest(); drawTiles(); drawRank(); drawCalc(); drawSoon(); drawLosses(); drawYears(); }
+
+drawBest(); drawTiles(); drawRank(); drawSoon(); drawLosses(); drawYears();
+// come back to the stock and amount you had before a reload
+let was = null;
+try { was = JSON.parse(sessionStorage.getItem(SEL) || 'null'); } catch {}
+if (was && stocks.some((s) => s.t === was.t)) current = was.t;
+select(current);
+if (was?.amt != null && current === was.t && current !== 'ALL') { calcAmt.value = was.amt; drawCalc(); remember(was.amt); }
+let rz;
+new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(drawChart, 80); }).observe(chartEl);
+})();
+</script>
+</body>
+</html>

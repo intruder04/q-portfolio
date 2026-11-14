@@ -1,0 +1,49 @@
+/* Theme picker: a button showing the current theme, opening a list where every
+   option shows its own colors as a small picture. */
+.theme-picker { position: relative; }
+.tp-label { color: var(--muted); font-size: .85rem; }
+
+.tp-button {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 500 .85rem/1.2 var(--sans); color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px 4px 5px; cursor: pointer;
+}
+.tp-button:hover { border-color: var(--accent); }
+.tp-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tp-chevron { width: 12px; height: 12px; color: var(--muted); }
+
+/* the swatch: theme background, a card in its panel color, an accent dot and a text line */
+.tp-sw {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 22px; border-radius: 5px; border: 1px solid transparent;
+}
+.tp-sw i { display: flex; align-items: center; gap: 3px; width: 24px; height: 12px; border-radius: 3px; padding: 0 3px; }
+.tp-sw b { flex: none; width: 5px; height: 5px; border-radius: 50%; }
+.tp-sw u { flex: 1; height: 2px; border-radius: 1px; opacity: .85; }
+.tp-button .tp-sw { width: 28px; height: 18px; }
+.tp-button .tp-sw i { width: 20px; height: 10px; }
+
+.tp-list {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
+  width: 250px; max-height: min(70vh, 520px); overflow: auto;
+  margin: 0; padding: 6px; list-style: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+}
+.tp-list:focus { outline: none; }
+.tp-list:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tp-group { padding: 10px 8px 4px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.tp-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 7px; cursor: pointer; color: var(--fg); font-size: .88rem;
+}
+.tp-option.active { background: var(--accent-soft); }
+.tp-option-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tp-option-name small { color: var(--muted); font-size: .75rem; }
+.tp-check { width: 16px; height: 16px; color: var(--accent); visibility: hidden; }
+.tp-option[aria-selected="true"] .tp-check { visibility: visible; }
+.tp-option[aria-selected="true"] { font-weight: 600; }
+
+@media (max-width: 480px) {
+  .tp-list { position: fixed; left: 16px; right: 16px; top: auto; width: auto; margin-top: 6px; }
+}
