@@ -167,6 +167,10 @@ test/                       tests, using made-up exports in test/fixtures
 
 `public/themes.css`, `theme-list.js`, `report.html` and `report.js` are generated before every run and deploy, so edit `scripts/themes.mjs` and `public/report-template.html` instead. The template keeps its own copies of the themes, `base.css` and `shared.js` (so a saved report works offline); the build refreshes them. Pages name their files with `?v=<fingerprint>`, so after a deploy a browser never mixes old and new files. Real exports (`*.qfx`, `*.ofx`) and downloaded reports are ignored by git.
 
+## License
+
+MIT. See `LICENSE`.
+
 ## Credits
 
 The app icon uses the "calendar-dollar" icon from [Tabler Icons](https://tabler.io/icons) by Paweł Kuna, under the MIT License (see `LICENSE-tabler-icons`).

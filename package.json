@@ -2,6 +2,7 @@
   "name": "q-portfolio",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Q portfolio, a website on Cloudflare: shows which shares in a Quicken export are long-term, with the cost basis of every purchase.",
   "scripts": {
     "sync": "node scripts/sync.mjs",
