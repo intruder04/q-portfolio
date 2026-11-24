@@ -84,8 +84,8 @@
   const hide = document.getElementById('wb-hide');
   if (hide) {
     const on = window.Shared.hidden;
-    hide.setAttribute('aria-pressed', String(on));
-    hide.textContent = on ? t('Show amounts') : t('Hide amounts');
+    hide.setAttribute('aria-pressed', String(on));       // the icon follows (web.css)
+    if (on) hide.title = t('Show amounts');
     hide.classList.toggle('primary', on);
     hide.addEventListener('click', () => { pref.set('tlv-hide', on ? '0' : '1'); reloadInPlace(); });
   }
@@ -123,6 +123,7 @@
 
   // ---- forget: a second click confirms ----
   const forget = document.getElementById('wb-forget');
+  const confirm = forget?.querySelector('.wb-confirm');
   let armed = null;
   forget?.addEventListener('click', () => {
     if (armed) {
@@ -132,8 +133,9 @@
       try { sessionStorage.removeItem('tlv-sel'); } catch {}
       return location.assign('./?new');
     }
-    forget.textContent = t('Click again to forget');
+    // the icon button says what a second click does, for a few seconds
+    confirm.textContent = t('Click again to forget');
     forget.classList.add('danger');
-    armed = setTimeout(() => { armed = null; forget.textContent = t('Forget this result'); forget.classList.remove('danger'); }, 4000);
+    armed = setTimeout(() => { armed = null; confirm.textContent = ''; forget.classList.remove('danger'); }, 4000);
   });
 })();

@@ -10,17 +10,17 @@ Your file is read in your browser and never uploaded.
 2. Open the site and drop the file on the page, or click **Choose File…**.
 3. Your **Performance** page opens, with the **Sell check** one tab over. The result is kept in this browser, so next time you open the site it's still there.
 
-On the report:
+On the report, the toolbar fits on one line on a laptop screen; the icon buttons show their names when you point at them:
 
 | Button | What it does |
 |---|---|
-| **Upload new file** | Opens a different export; **Back to your last result** returns without changing anything |
-| **Refresh prices** | Gets current prices for the saved result; your purchases stay as they are |
-| **Update manually / Every 5, 15, 30 min / Every hour** | Updates prices automatically while the US market is open (Mon–Fri, 9:30 AM–4:00 PM New York time), plus once after the close to catch closing prices. Pauses while the tab is hidden and catches up when you return. The page keeps your scroll position. |
-| **Hide amounts** | Hides every dollar amount and share count on both pages, leaving percentages, so you can share a screenshot. Click **Show amounts** to bring them back. **Save report** is off while amounts are hidden, because a saved file always holds your figures |
+| **New file** | Opens a different export; **Back to your last result** returns without changing anything |
+| **Refresh prices** (circling arrows) | Gets current prices for the saved result; your purchases stay as they are |
+| **Manual / 5, 15, 30 min / 1 hour** (clock) | Updates prices automatically while the US market is open (Mon–Fri, 9:30 AM–4:00 PM New York time), plus once after the close to catch closing prices. Pauses while the tab is hidden and catches up when you return. The page keeps your scroll position. |
+| **Hide amounts** (eye) | Hides every dollar amount and share count on both pages, leaving percentages, so you can share a screenshot. Click **Show amounts** to bring them back. **Save report** is off while amounts are hidden, because a saved file always holds your figures |
 | **Share card** (Performance page) | A ready-to-post image of your returns, percentages only: total return against the index, best performers, and today, this year, the last 12 months and per year. **Save image** or **Copy image**; it's made in your browser |
-| **Save report** | Downloads the report as one HTML file that opens in any browser, even offline |
-| **Forget this result** | Removes the saved result from this browser, along with the sectors you chose and anything else that names your stocks (click twice to confirm) |
+| **Save report** (download arrow) | Downloads the report as one HTML file that opens in any browser, even offline |
+| **Forget this result** (trash can) | Removes the saved result from this browser, along with the sectors you chose and anything else that names your stocks (click twice to confirm) |
 | **EN / RU** (next to Theme, on every page) | Shows the site in English or Russian, numbers and dates included. Kept in this browser; without a choice, your browser's language decides. A saved report opens in the language it was saved in and has its own switch |
 | **Theme** (top right of both pages) | System, Light, Dark, GitHub Light/Dark, One Dark, Dracula, Tokyo Night, Catppuccin Latte/Mocha, Nord, Solarized Light/Dark. Each option shows its colors, and moving through the list (mouse or arrow keys) previews it on the page; Esc undoes the preview. |
 

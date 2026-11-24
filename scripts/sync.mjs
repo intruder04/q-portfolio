@@ -47,29 +47,41 @@ const dataTag = '<script id="data" type="application/json">__DATA__</script>';
 if (!template.includes(dataTag)) throw new Error('report-template.html has no data placeholder');
 
 const ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 21h-7a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v3"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h12.5"/><path d="M21 15h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3h-2.5"/><path d="M19 21v1m0 -8v1"/></svg>';
-// The toolbar shared by the result pages; `page` marks the current tab.
+// Small line icons for the toolbar's buttons; each button's name is its title and aria-label.
+const svg = (body, cls = '') => `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const I = {
+  refresh: svg('<path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>'),
+  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>'),
+  eye: svg('<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>', 'i-shown'),
+  eyeOff: svg('<path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/><path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"/><path d="M3 3l18 18"/>', 'i-hidden'),
+  save: svg('<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/>'),
+  trash: svg('<path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>'),
+};
+// The toolbar shared by the result pages, on one line on a laptop screen; `page` marks the current tab.
 const toolbar = (page) => `<nav class="webbar" aria-label="Results">
   <div class="wb-left">
-    <a class="wb-brand" href="./?new">${ICON}<span>Q portfolio</span></a>
+    <a class="wb-brand" href="./?new" title="Q portfolio">${ICON}<span class="wb-name">Q portfolio</span></a>
     <div class="wb-tabs">
       <a class="wb-tab" href="performance"${page === 'perf' ? ' aria-current="page"' : ''}>Performance</a>
       <a class="wb-tab" href="report"${page === 'sell' ? ' aria-current="page"' : ''}>Sell check</a>
     </div>
   </div>
   <div class="wb-actions">
-    <a class="wb-btn primary" href="./?new">Upload new file</a>
-    <button class="wb-btn" id="wb-refresh" type="button">Refresh prices</button>
-    <select class="wb-auto" id="wb-auto" aria-label="Update prices automatically" title="Updates run while the US market is open (9:30 AM to 4:00 PM New York time), plus once after the close, and pause while this tab is hidden.">
-      <option value="0">Update manually</option>
-      <option value="5">Every 5 min</option>
-      <option value="15">Every 15 min</option>
-      <option value="30">Every 30 min</option>
-      <option value="60">Every hour</option>
-    </select>
-    <button class="wb-btn" id="wb-hide" type="button" aria-pressed="false" title="Hides every dollar amount and share count, leaving percentages, so you can share a screenshot">Hide amounts</button>
-${page === 'sell' ? '    <button class="wb-btn" id="wb-save" type="button">Save report</button>\n' : ''}    <button class="wb-btn" id="wb-forget" type="button">Forget this result</button>
+    <a class="wb-btn primary" href="./?new" title="Upload new file">New file</a>
+    <button class="wb-btn icon" id="wb-refresh" type="button" title="Refresh prices" aria-label="Refresh prices">${I.refresh}</button>
+    <label class="wb-auto" title="Updates run while the US market is open (9:30 AM to 4:00 PM New York time), plus once after the close, and pause while this tab is hidden.">${I.clock}
+      <select id="wb-auto" aria-label="Update prices automatically">
+        <option value="0">Manual</option>
+        <option value="5">5 min</option>
+        <option value="15">15 min</option>
+        <option value="30">30 min</option>
+        <option value="60">1 hour</option>
+      </select>
+    </label>
+    <button class="wb-btn icon" id="wb-hide" type="button" aria-pressed="false" aria-label="Hide amounts" title="Hide amounts, leaving percentages, so you can share a screenshot">${I.eye}${I.eyeOff}</button>
+${page === 'sell' ? `    <button class="wb-btn icon" id="wb-save" type="button" title="Save report" aria-label="Save report">${I.save}</button>\n` : ''}    <button class="wb-btn icon" id="wb-forget" type="button" title="Forget this result" aria-label="Forget this result">${I.trash}<span class="wb-confirm"></span></button>
     <div class="lang-switch"></div>
-    <div class="wb-theme"><span class="tp-label">Theme</span><div class="theme-picker"></div></div>
+    <div class="wb-theme"><span class="tp-label vh">Theme</span><div class="theme-picker"></div></div>
   </div>
   <p class="wb-status" id="wb-status" role="status"></p>
 </nav>

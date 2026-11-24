@@ -139,6 +139,7 @@
     function showCurrent() {
       button.firstChild.replaceWith(swatch(current));
       shown.textContent = nameOf(current);
+      button.title = `${t('Theme')}: ${nameOf(current)}`;  // the toolbar shows only the swatch
       for (const li of items) li.setAttribute('aria-selected', String(li.dataset.id === current));
     }
 
