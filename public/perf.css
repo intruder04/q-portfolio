@@ -81,9 +81,11 @@ tr.sold td { color: var(--muted); }
 .share-dlg:not([open]) { display: none; }
 .share-dlg::backdrop { background: rgba(0, 0, 0, .55); }
 .share-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.share-preview svg { display: block; width: 100%; height: auto; border-radius: 10px; }
+.share-preview { display: grid; place-items: center; min-height: 0; }
+/* the card as an image, exactly as it's saved; a tall one fits the window's height */
+.share-preview img { display: block; max-width: 100%; max-height: min(62vh, 720px); width: auto; height: auto; border-radius: 10px; }
 .share-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .share-actions .note { margin: 0; }
 
 @media (max-width: 640px) { #chart { min-height: 300px; } }
-#share-span { margin-top: 10px; }
+.share-opts { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 10px; }
