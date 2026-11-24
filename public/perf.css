@@ -86,3 +86,4 @@ tr.sold td { color: var(--muted); }
 .share-actions .note { margin: 0; }
 
 @media (max-width: 640px) { #chart { min-height: 300px; } }
+#share-span { margin-top: 10px; }

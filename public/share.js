@@ -12,18 +12,45 @@
   const $ = (id) => document.getElementById(id);
   const say = (text) => { $('share-status').textContent = text; };
 
-  function stats() {
+  // What the card shows. `span` is 'all' (since your first purchase) or 'year' (since
+  // January 1): the headline return against the index, the best stocks over that span,
+  // three more periods, and the span's largest drop.
+  function stats(span) {
     const data = window.TLV.loadResult();
     let bench = 'SPY';
     try { if (BENCH[localStorage.getItem('tlv-bench')]) bench = localStorage.getItem('tlv-bench'); } catch {}
     if (!data?.activity?.length || !data.bench?.[bench]) return null;
     const points = P.timeline(data, bench), last = points.length - 1;
     const per = (r) => P.period(points, P.rangeStart(points, r), last);
-    const top = P.holdings(data, bench).filter((h) => h.open && h.gainPct != null)
-      .sort((a, b) => b.gainPct - a.gainPct).slice(0, 5);
-    // the index's largest drop over the same weeks as yours, for comparison
-    const benchDrop = P.maxDrawdown(points.filter((p) => p.twr != null).map((p) => p.bench)).drawdown;
-    return { data, name: BENCH[bench], sum: P.summary(data, points), ytd: per('YTD'), y1: per('1Y'), m6: per('6M'), benchDrop, top };
+    const best = (rows) => rows.filter((h) => h.value > 0 && h.gainPct != null).sort((a, b) => b.gainPct - a.gainPct).slice(0, 5);
+    // the largest drop over the span's weeks, and the index's over the same weeks
+    const drop = (from) => {
+      const pts = points.slice(from).filter((p) => p.twr != null);
+      return { dd: P.maxDrawdown(pts.map((p) => p.twr)), bench: P.maxDrawdown(pts.map((p) => p.bench)).drawdown };
+    };
+    const base = { data, name: BENCH[bench] };
+    if (span === 'year') {
+      const year = data.asof.slice(0, 4), i0 = P.rangeStart(points, 'YTD'), ytd = per('YTD');
+      const m1 = per('1M'), m3 = per('3M'), y1 = per('1Y');
+      return {
+        ...base, mine: ytd.twr, theirs: ytd.benchReturn,
+        heading: tr('Return so far in {year}', { year }),
+        top: best(P.periodReturns(data, `${year}-01-01`)),
+        tiles: [[tr('Last month'), m1.twr, m1.benchReturn], [tr('Last 3 months'), m3.twr, m3.benchReturn], [tr('Last 12 months'), y1.twr, y1.benchReturn]],
+        drop: drop(i0),
+        footer: tr('Percentages only · time-weighted returns with dividends; best performers by their return this year'),
+      };
+    }
+    const sum = P.summary(data, points), ytd = per('YTD'), y1 = per('1Y'), m6 = per('6M');
+    return {
+      ...base, mine: sum.twr, theirs: sum.benchReturn,
+      heading: tr('Total return since {month}', { month: S.fmtMonth(sum.since.slice(0, 7)) }),
+      top: best(P.holdings(data, bench).filter((h) => h.open)),
+      tiles: [[tr('This year'), ytd.twr, ytd.benchReturn], [tr('Last 12 months'), y1.twr, y1.benchReturn],
+        sum.irr != null ? [tr('Per year'), sum.irr, sum.marketIrr] : [tr('Last 6 months'), m6.twr, m6.benchReturn]],
+      drop: drop(0),
+      footer: tr('Percentages only · time-weighted returns with dividends; "per year" is money-weighted'),
+    };
   }
 
   function card(x) {
@@ -36,7 +63,7 @@
     const serif = `'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif`;
     const t = (x, y, size, fill, text, more = '') =>
       `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" font-family="${sans}" ${more}>${S.esc(text)}</text>`;
-    const s = x.sum, B = x.name, ahead = s.twr - s.benchReturn;
+    const B = x.name, ahead = x.mine - x.theirs;
 
     let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="${col.bg}"/>
@@ -44,10 +71,10 @@
     out += t(64, 92, 30, col.fg, tr('My portfolio'), 'font-weight="700"');
     out += t(W - 64, 92, 24, col.muted, tr('As of {date}', { date: S.fmtDate(x.data.asof.slice(0, 10)) }), 'text-anchor="end"');
 
-    // headline: return since the first purchase, against the index
-    out += t(64, 160, 24, col.muted, tr('Total return since {month}', { month: S.fmtMonth(s.since.slice(0, 7)) }));
-    out += `<text x="60" y="272" font-size="112" fill="${tone(s.twr)}" font-family="${serif}">${S.esc(p(s.twr))}</text>`;
-    out += t(64, 320, 26, col.muted, `${B}: ${p(s.benchReturn)}`);
+    // headline: the span's return, against the index
+    out += t(64, 160, 24, col.muted, x.heading);
+    out += `<text x="60" y="272" font-size="112" fill="${tone(x.mine)}" font-family="${serif}">${S.esc(p(x.mine))}</text>`;
+    out += t(64, 320, 26, col.muted, `${B}: ${p(x.theirs)}`);
     const badge = Math.abs(ahead) < 0.0005 ? tr('Same return as the {index}', { index: B })
       : tr(ahead > 0 ? '{pct} more return than the {index}' : '{pct} less return than the {index}', { pct: S.pct(Math.abs(ahead)), index: B });
     const bw = textWidth(badge, `600 22px ${sans}`) + 40;
@@ -73,21 +100,20 @@
 
     // four periods along the bottom
     // three returns, then risk: your largest fall from a high against the index's
-    const tiles = [
-      [tr('This year'), x.ytd.twr, x.ytd.benchReturn],
-      [tr('Last 12 months'), x.y1.twr, x.y1.benchReturn],
-      s.irr != null ? [tr('Per year'), s.irr, s.marketIrr] : [tr('Last 6 months'), x.m6.twr, x.m6.benchReturn],
-      [tr('Largest drop'), s.drawdown.drawdown, x.benchDrop],
-    ];
+    const dd = x.drop.dd;
+    const tiles = [...x.tiles, [tr('Largest drop'), dd.drawdown, x.drop.bench]];
+    // under the largest drop: how far you've come back since the low
+    const comeback = dd.index != null && dd.drawdown < -0.0005 && dd.rise > 0.0005 ? tr('{pct} since the low', { pct: p(dd.rise) }) : null;
     const tw = (W - 128 - 3 * 20) / 4;
     tiles.forEach(([k, mine, theirs], i) => {
-      const tx = 64 + i * (tw + 20), ty = 422;
-      out += `<rect x="${tx}" y="${ty}" width="${tw}" height="132" rx="14" fill="${col.bg}" stroke="${col.line}" stroke-width="1.5"/>`;
+      const tx = 64 + i * (tw + 20), ty = 412;
+      out += `<rect x="${tx}" y="${ty}" width="${tw}" height="152" rx="14" fill="${col.bg}" stroke="${col.line}" stroke-width="1.5"/>`;
       out += t(tx + 20, ty + 36, 20, col.muted, k);
       out += `<text x="${tx + 20}" y="${ty + 86}" font-size="44" fill="${tone(mine)}" font-family="${serif}">${S.esc(p(mine))}</text>`;
       if (theirs != null) out += t(tx + 20, ty + 116, 19, col.muted, `${B} ${p(theirs)}`);
+      if (i === 3 && comeback) out += t(tx + 20, ty + 140, 19, col.good, comeback, 'font-weight="600"');
     });
-    out += t(64, H - 44, 17, col.muted, tr('Percentages only · time-weighted returns with dividends; "per year" is money-weighted'));
+    out += t(64, H - 44, 17, col.muted, x.footer);
     return out + '</svg>';
   }
 
@@ -115,18 +141,42 @@
     } catch { return null; }
   }
 
+  // All time or This year, kept in this browser
+  const SPAN = 'tlv-share-span';
+  let span = 'all';
+  try { if (localStorage.getItem(SPAN) === 'year') span = 'year'; } catch {}
+  const spanBox = $('share-span');
+  const showSpan = () => spanBox.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === span)));
+
   let svg = '';
-  open.addEventListener('click', async () => {
-    const x = stats();
-    if (!x) return;
-    open.disabled = true;
-    const found = await Promise.all(x.top.map((h) => logoData(h.t)));
-    open.disabled = false;
-    x.logos = Object.fromEntries(x.top.map((h, i) => [h.t, found[i]]));
+  const logos = {};                              // fetched once per stock while the page is open
+  async function draw() {
+    const x = stats(span);
+    if (!x) return false;
+    await Promise.all(x.top.filter((h) => !(h.t in logos)).map(async (h) => { logos[h.t] = await logoData(h.t); }));
+    x.logos = logos;
     svg = card(x);
     $('share-preview').innerHTML = svg;
+    showSpan();
     say('');
-    dlg.showModal();
+    return true;
+  }
+  open.addEventListener('click', async () => {
+    open.disabled = true;
+    const ok = await draw();
+    open.disabled = false;
+    if (ok) dlg.showModal();
+  });
+  spanBox.addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b || b.dataset.v === span) return;
+    span = b.dataset.v;
+    try { localStorage.setItem(SPAN, span); } catch {}
+    showSpan();
+    await draw();
+  });
+  spanBox.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); spanBox.querySelector(`button:not([data-v="${span}"])`).click(); }
   });
   $('share-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });

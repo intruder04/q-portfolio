@@ -188,7 +188,11 @@
     $('t-irr-s').textContent = sum.irr == null ? tr('Shown after a year of history') : tr('{index}: {pct} a year with the same money', { index: B, pct: signedPct(sum.marketIrr) });
     const dd = sum.drawdown;
     $('t-dd').textContent = dd.drawdown < -0.0005 ? signedPct(dd.drawdown) : '0%';
-    $('t-dd-s').textContent = dd.index != null && dd.drawdown < -0.0005 ? tr('From a previous high, low in the week of {date}', { date: fmtDate(points[dd.index].d) }) : tr('No fall from a high so far');
+    // the fall, then how far it has come back since the low
+    $('t-dd-s').textContent = dd.index == null || dd.drawdown >= -0.0005 ? tr('No fall from a high so far')
+      : dd.index === points.length - 1 ? tr('From a previous high; the low is this week')
+      : dd.recovered ? tr('Low in the week of {date}. Since then {rise}, back above the previous high.', { date: fmtDate(points[dd.index].d), rise: signedPct(dd.rise) })
+      : tr('Low in the week of {date}. Since then {rise}, still {below} under the previous high.', { date: fmtDate(points[dd.index].d), rise: signedPct(dd.rise), below: pct(-dd.fromPeak) });
     $('h-vs-label').textContent = tr('vs {index}', { index: B });
     $('h-vs-th').textContent = tr('vs {index}', { index: B });
   }

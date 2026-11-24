@@ -107,16 +107,24 @@ function xirr(flows) {
   return (lo + hi) / 2;
 }
 
-// Largest fall from a previous high in a series of index values.
+// Largest fall from a previous high in a series of index values, and what came after it:
+//   drawdown   the fall, as a negative fraction (0 when the series never fell)
+//   index      where the low was; peakIndex, the high before it
+//   rise       how much the latest value is above the low (0 when the low is the latest)
+//   recovered  whether the latest value is back at or above that high
+//   fromPeak   the latest value against that high (negative while still below it)
 function maxDrawdown(values) {
-  let peak = -Infinity, worst = 0, at = null;
+  let peak = -Infinity, peakAt = null, worst = 0, at = null, worstPeakAt = null, last = null;
   for (const [i, v] of values.entries()) {
     if (v == null) continue;
-    peak = Math.max(peak, v);
+    if (v > peak) { peak = v; peakAt = i; }
     const dd = v / peak - 1;
-    if (dd < worst) { worst = dd; at = i; }
+    if (dd < worst) { worst = dd; at = i; worstPeakAt = peakAt; }
+    last = v;
   }
-  return { drawdown: worst, index: at };
+  if (at == null) return { drawdown: 0, index: null, peakIndex: null, rise: 0, recovered: true, fromPeak: 0 };
+  const low = values[at], high = values[worstPeakAt];
+  return { drawdown: worst, index: at, peakIndex: worstPeakAt, rise: last / low - 1, recovered: last >= high, fromPeak: last / high - 1 };
 }
 
 // Totals for the whole history, from the timeline's last point.
@@ -165,7 +173,7 @@ function period(points, i0, i1) {
   };
 }
 
-// Where a range starts: 'W' (last week), '6M', 'YTD', a number of years such as '1Y',
+// Where a range starts: 'W' (last week), '1M', '3M', '6M', 'YTD', a number of years such as '1Y',
 // '2Y' or '2.5Y', or 'ALL'.
 function rangeStart(points, range) {
   const last = points[points.length - 1].d;
@@ -173,7 +181,7 @@ function rangeStart(points, range) {
   const y = Number(last.slice(0, 4));
   const years = /^(\d+(?:\.\d+)?)Y$/.exec(range);
   const from = years ? isoOf(ms(last) - Number(years[1]) * 365.25 * DAY)
-    : { '6M': isoOf(ms(last) - 182 * DAY), YTD: `${y}-01-01` }[range];
+    : { '1M': isoOf(ms(last) - 30 * DAY), '3M': isoOf(ms(last) - 91 * DAY), '6M': isoOf(ms(last) - 182 * DAY), YTD: `${y}-01-01` }[range];
   if (!from) return 0;
   const i = points.findIndex((p) => p.d >= from);
   return Math.max(0, i - 1); // start from the last point before the range, so its first week counts
@@ -231,6 +239,29 @@ function holdings(data, benchSym) {
   });
   for (const r of list) r.weight = total > 0 ? r.value / total : 0;
   return list;
+}
+
+// Each stock's return since `from` (an ISO date, such as January 1), for the stocks you hold
+// now: what it gained since then (its value now, plus sales and dividends since, minus its
+// value at `from` and the buys since), against its value at `from` plus the buys since.
+function periodReturns(data, from) {
+  const rows = {};
+  const row = (t) => (rows[t] ||= { sh: 0, bought: 0, sold: 0, divs: 0 });
+  for (const a of [...(data.activity || [])].sort(byDate)) {
+    const buyish = BUYISH.has(a.type), r = row(a.t);
+    const sh = a.sh * splitFactor(data.splitEvents, a.t, a.d, buyish);   // in today's units
+    if (a.d < from) { r.sh += buyish ? sh : -sh; continue; }
+    const amount = a.amount ?? sh * (priceAt(seriesFor(data, a.t), a.d) ?? 0);
+    if (buyish) r.bought += amount; else r.sold += amount;
+  }
+  for (const i of data.income || []) if (i.d >= from) row(i.t).divs += i.amount;
+  return Object.entries(rows).filter(([t]) => data.stocks[t]).map(([t, r]) => {
+    const s = data.stocks[t];
+    const value = s.lots.reduce((x, l) => x + l.sh, 0) * s.price;
+    const start = Math.max(0, r.sh) * (priceAt(seriesFor(data, t), from) ?? 0);
+    const gain = value + r.sold + r.divs - start - r.bought, base = start + r.bought;
+    return { t, name: s.name, value, start, bought: r.bought, sold: r.sold, divs: r.divs, gain, gainPct: base > 0 ? gain / base : null };
+  });
 }
 
 // Money in and out per month, with dividends.
@@ -318,7 +349,7 @@ function composition(data, { overrides = {}, minShare = 0 } = {}) {
   return { total, groups: list };
 }
 
-const api = { priceAt, splitFactor, timeline, xirr, maxDrawdown, summary, period, rangeStart, today, holdings, monthly, squarify, composition };
+const api = { priceAt, splitFactor, timeline, xirr, maxDrawdown, summary, period, rangeStart, today, holdings, periodReturns, monthly, squarify, composition };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else window.PerfCalc = api;
 }

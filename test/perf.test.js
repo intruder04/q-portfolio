@@ -263,3 +263,47 @@ test('the logo lookup accepts only a ticker', async () => {
   assert.ok(parseLogoRequest(u('symbol=AAPL&size=999')).error);
   assert.ok(parseLogoRequest(u('symbol=../x')).error);
 });
+
+test('largest drop, and how far it came back', () => {
+  const still = P.maxDrawdown([100, 120, 60, 90]);          // high 120, low 60, now 90
+  near(still.drawdown, -0.5, 1e-12, 'the fall');
+  assert.equal(still.index, 2); assert.equal(still.peakIndex, 1);
+  near(still.rise, 0.5, 1e-12, 'up 50% from the low');
+  assert.equal(still.recovered, false);
+  near(still.fromPeak, -0.25, 1e-12, 'still 25% under the high');
+
+  const back = P.maxDrawdown([100, null, 50, 80, 110]);     // gaps are skipped
+  near(back.rise, 1.2, 1e-12); assert.equal(back.recovered, true);
+
+  const atLow = P.maxDrawdown([100, 80]);                   // the low is the latest point
+  assert.equal(atLow.index, 1); assert.equal(atLow.rise, 0);
+
+  const never = P.maxDrawdown([1, 2, 3]);
+  assert.equal(never.drawdown, 0); assert.equal(never.index, null);
+});
+
+test('each stock\'s return since January 1, counting buys made since', () => {
+  const data = {
+    asof: '2026-06-01 16:00',
+    activity: [
+      { d: '2025-06-01', type: 'BUY', t: 'AAA', sh: 10, price: 100, amount: 1000 },
+      { d: '2026-03-01', type: 'BUY', t: 'AAA', sh: 5, price: 130, amount: 650 },
+      { d: '2026-02-01', type: 'BUY', t: 'BBB', sh: 4, price: 50, amount: 200 },
+      { d: '2025-07-01', type: 'BUY', t: 'CCC', sh: 1, price: 10, amount: 10 },
+      { d: '2026-01-15', type: 'SELL', t: 'CCC', sh: 1, price: 12, amount: 12 },   // sold: not on the card
+    ],
+    income: [{ d: '2026-04-01', t: 'AAA', amount: 30 }, { d: '2025-09-01', t: 'AAA', amount: 99 }],
+    splitEvents: [],
+    stocks: {
+      AAA: { name: 'A', price: 150, lots: [{ sh: 10, c: 100 }, { sh: 5, c: 130 }], series: [['2025-06-01', 100], ['2025-12-26', 120], ['2026-05-29', 150]] },
+      BBB: { name: 'B', price: 60, lots: [{ sh: 4, c: 50 }], series: [['2026-01-30', 50], ['2026-05-29', 60]] },
+    },
+  };
+  const r = Object.fromEntries(P.periodReturns(data, '2026-01-01').map((x) => [x.t, x]));
+  assert.deepEqual(Object.keys(r).sort(), ['AAA', 'BBB']);
+  // AAA: worth 10 × 120 on Jan 1, then 650 more bought; now 15 × 150 plus 30 of dividends
+  near(r.AAA.start, 1200, 1e-9); near(r.AAA.gain, 2250 + 30 - 1200 - 650, 1e-9);
+  near(r.AAA.gainPct, 430 / 1850, 1e-12);
+  // BBB: all bought this year
+  near(r.BBB.gainPct, (240 - 200) / 200, 1e-12);
+});
