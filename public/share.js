@@ -6,7 +6,8 @@
   const open = document.getElementById('share-open'), dlg = document.getElementById('share');
   if (!open || !dlg) return;
   const P = window.PerfCalc, S = window.Shared;
-  const BENCH = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', VTI: 'total US market' };
+  const tr = S.t;                                // text in the chosen language (i18n.js)
+  const BENCH = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', VTI: tr('total US market') };
   const W = 1200, H = 630;                       // the usual size for a shared link image
   const $ = (id) => document.getElementById(id);
   const say = (text) => { $('share-status').textContent = text; };
@@ -40,28 +41,29 @@
     let out = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="${col.bg}"/>
       <rect x="24" y="24" width="${W - 48}" height="${H - 48}" rx="22" fill="${col.panel}" stroke="${col.line}" stroke-width="2"/>`;
-    out += t(64, 92, 30, col.fg, 'My portfolio', 'font-weight="700"');
-    out += t(W - 64, 92, 24, col.muted, `As of ${S.fmtDate(x.data.asof.slice(0, 10))}`, 'text-anchor="end"');
+    out += t(64, 92, 30, col.fg, tr('My portfolio'), 'font-weight="700"');
+    out += t(W - 64, 92, 24, col.muted, tr('As of {date}', { date: S.fmtDate(x.data.asof.slice(0, 10)) }), 'text-anchor="end"');
 
     // headline: return since the first purchase, against the index
-    out += t(64, 160, 24, col.muted, `Total return since ${S.fmtMonth(s.since.slice(0, 7))}`);
+    out += t(64, 160, 24, col.muted, tr('Total return since {month}', { month: S.fmtMonth(s.since.slice(0, 7)) }));
     out += `<text x="60" y="272" font-size="112" fill="${tone(s.twr)}" font-family="${serif}">${S.esc(p(s.twr))}</text>`;
     out += t(64, 320, 26, col.muted, `${B}: ${p(s.benchReturn)}`);
-    const badge = Math.abs(ahead) < 0.0005 ? `Same return as the ${B}` : `${Math.abs(ahead * 100).toFixed(1)}% ${ahead > 0 ? 'more' : 'less'} return than the ${B}`;
-    const bw = badge.length * 12.6 + 40;
+    const badge = Math.abs(ahead) < 0.0005 ? tr('Same return as the {index}', { index: B })
+      : tr(ahead > 0 ? '{pct} more return than the {index}' : '{pct} less return than the {index}', { pct: S.pct(Math.abs(ahead)), index: B });
+    const bw = textWidth(badge, `600 22px ${sans}`) + 40;
     out += `<rect x="64" y="342" width="${bw}" height="44" rx="22" fill="${ahead >= 0 ? col.good : col.bad}" fill-opacity="0.16"/>`;
     out += t(84, 372, 22, ahead >= 0 ? col.good : col.bad, badge, 'font-weight="600"');
 
     // best stocks by return
     if (x.top.length) {
       const X0 = 760;
-      out += t(X0, 160, 24, col.muted, 'Best performers');
+      out += t(X0, 160, 24, col.muted, tr('Best performers'));
       x.top.forEach((h, i) => {
         const y = 206 + i * 44;                     // five rows fit above the period tiles
         // logo (or the first letter, when there's none) left of the ticker
         out += `<clipPath id="lg${i}"><rect x="${X0}" y="${y - 25}" width="32" height="32" rx="8"/></clipPath>`;
         out += x.logos[h.t]
-          ? `<rect x="${X0}" y="${y - 25}" width="32" height="32" rx="8" fill="#fff"/><image href="${x.logos[h.t]}" x="${X0}" y="${y - 25}" width="32" height="32" preserveAspectRatio="xMidYMid meet" clip-path="url(#lg${i})"/>`
+          ? `<rect x="${X0}" y="${y - 25}" width="32" height="32" rx="8" fill="${x.logos[h.t].dark ? '#1f2328' : '#fff'}"/><image href="${x.logos[h.t].src}" x="${X0}" y="${y - 25}" width="32" height="32" preserveAspectRatio="xMidYMid meet" clip-path="url(#lg${i})"/>`
           : `<rect x="${X0}" y="${y - 25}" width="32" height="32" rx="8" fill="${col.line}"/>` + t(X0 + 16, y - 2, 17, col.muted, h.t[0], 'text-anchor="middle" font-weight="700"');
         out += t(X0 + 44, y, 28, col.fg, h.t, 'font-weight="700"');
         out += t(W - 64, y, 28, tone(h.gainPct), p(h.gainPct), 'text-anchor="end" font-weight="600"');
@@ -72,10 +74,10 @@
     // four periods along the bottom
     // three returns, then risk: your largest fall from a high against the index's
     const tiles = [
-      ['This year', x.ytd.twr, x.ytd.benchReturn],
-      ['Last 12 months', x.y1.twr, x.y1.benchReturn],
-      s.irr != null ? ['Per year', s.irr, s.marketIrr] : ['Last 6 months', x.m6.twr, x.m6.benchReturn],
-      ['Largest drop', s.drawdown.drawdown, x.benchDrop],
+      [tr('This year'), x.ytd.twr, x.ytd.benchReturn],
+      [tr('Last 12 months'), x.y1.twr, x.y1.benchReturn],
+      s.irr != null ? [tr('Per year'), s.irr, s.marketIrr] : [tr('Last 6 months'), x.m6.twr, x.m6.benchReturn],
+      [tr('Largest drop'), s.drawdown.drawdown, x.benchDrop],
     ];
     const tw = (W - 128 - 3 * 20) / 4;
     tiles.forEach(([k, mine, theirs], i) => {
@@ -85,17 +87,31 @@
       out += `<text x="${tx + 20}" y="${ty + 86}" font-size="44" fill="${tone(mine)}" font-family="${serif}">${S.esc(p(mine))}</text>`;
       if (theirs != null) out += t(tx + 20, ty + 116, 19, col.muted, `${B} ${p(theirs)}`);
     });
-    out += t(64, H - 44, 17, col.muted, 'Percentages only · time-weighted returns with dividends; "per year" is money-weighted');
+    out += t(64, H - 44, 17, col.muted, tr('Percentages only · time-weighted returns with dividends; "per year" is money-weighted'));
     return out + '</svg>';
   }
 
-  // each logo as image data, so it's part of the saved picture; none if it can't be had
+  // how wide a line of text is drawn, so the badge fits it in any language
+  let ctx;
+  function textWidth(text, font) {
+    ctx ||= document.createElement('canvas').getContext('2d');
+    ctx.font = font;
+    return ctx.measureText(text).width;
+  }
+
+  // each logo as image data, so it's part of the saved picture, and whether it's white
+  // artwork that needs a dark tile (see shared.js); none if it can't be had
   async function logoData(t) {
     try {
       const res = await fetch(`api/logo?symbol=${encodeURIComponent(t)}`);
       if (!res.ok) return null;
       const blob = await res.blob();
-      return await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ok(null); r.readAsDataURL(blob); });
+      const src = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => ok(null); r.readAsDataURL(blob); });
+      if (!src) return null;
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      return { src, dark: S.lightLogo(img) };
     } catch { return null; }
   }
 
@@ -122,21 +138,21 @@
     await img.decode();
     const canvas = Object.assign(document.createElement('canvas'), { width: W * 2, height: H * 2 });
     canvas.getContext('2d').drawImage(img, 0, 0, W * 2, H * 2);
-    return new Promise((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error('Could not make the image'))), 'image/png'));
+    return new Promise((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error(tr('Could not make the image')))), 'image/png'));
   }
   $('share-save').addEventListener('click', async () => {
     try {
       const url = URL.createObjectURL(await png());
-      const a = Object.assign(document.createElement('a'), { href: url, download: `Portfolio performance ${new Date().toISOString().slice(0, 10)}.png` });
+      const a = Object.assign(document.createElement('a'), { href: url, download: tr('Portfolio performance {date}.png', { date: new Date().toISOString().slice(0, 10) }) });
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      say('Saved to your downloads.');
+      say(tr('Saved to your downloads.'));
     } catch (err) { say(String(err?.message || err)); }
   });
   $('share-copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
-      say('Copied. Paste it into a message or post.');
-    } catch { say('This browser didn’t allow copying; use Save image instead.'); }
+      say(tr('Copied. Paste it into a message or post.'));
+    } catch { say(tr('This browser didn’t allow copying; use Save image instead.')); }
   });
 })();

@@ -25,12 +25,14 @@
   // A custom list instead of a <select>, so each option can show its theme's colors.
   // Moving through the list previews the theme on the page; Esc or clicking away undoes it.
 
-  const THEMES = window.TLV_THEMES || [];
+  const t = (s) => (window.I18n ? window.I18n.t(s) : s);
+  // Light and Dark are translated; the others are names (Dracula, Nord…)
+  const THEMES = (window.TLV_THEMES || []).map((x) => (x.id === 'light' || x.id === 'dark' ? { ...x, name: t(x.name) } : x));
   const byId = Object.fromEntries(THEMES.map((t) => [t.id, t]));
   const OPTIONS = [
-    { id: 'system', name: 'System', hint: 'Follows your device' },
+    { id: 'system', name: t('System'), hint: t('Follows your device') },
     ...THEMES.filter((t) => t.id === 'light' || t.id === 'dark'),
-    { group: 'Popular themes' },
+    { group: t('Popular themes') },
     ...THEMES.filter((t) => t.id !== 'light' && t.id !== 'dark'),
   ];
   let current = byId[read(THEME)] ? read(THEME) : 'system';
@@ -69,7 +71,7 @@
     return el;
   }
 
-  const nameOf = (id) => OPTIONS.find((o) => o.id === id)?.name || 'System';
+  const nameOf = (id) => OPTIONS.find((o) => o.id === id)?.name || t('System');
   const pickers = [];
 
   function buildPicker(host, n) {
@@ -93,7 +95,7 @@
     const list = document.createElement('ul');
     list.className = 'tp-list';
     list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Theme');
+    list.setAttribute('aria-label', t('Theme'));
     list.tabIndex = -1;
     list.hidden = true;
 

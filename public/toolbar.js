@@ -3,6 +3,7 @@
 (() => {
   const data = window.TLV.loadResult();
   if (!data) return;
+  const t = window.Shared.t;
 
   const status = document.getElementById('wb-status');
   const say = (text) => { status.textContent = text; };
@@ -35,7 +36,7 @@
       const next = await window.Lots.refreshPrices(data, {
         fetchQuote: window.Prices.fetchQuote,
         fetchSeries: window.Prices.fetchSeries,
-        onProgress: (p) => say(p.done < p.total ? `Getting prices · ${p.done + 1} of ${p.total}` : 'Updating…'),
+        onProgress: (p) => say(p.done < p.total ? t('Getting prices · {n} of {total}', { n: p.done + 1, total: p.total }) : t('Updating…')),
       });
       window.TLV.saveResult(next);
       updated();
@@ -61,7 +62,7 @@
         const next = await window.Lots.updatePrices(window.TLV.loadResult() || data, {
           fetchLatest: window.Prices.fetchLatest,
           fetchSeries: window.Prices.fetchSeries,
-          onProgress: (p) => say(p.done < p.total ? `Updating prices · ${p.done + 1} of ${p.total}` : 'Updating…'),
+          onProgress: (p) => say(p.done < p.total ? t('Updating prices · {n} of {total}', { n: p.done + 1, total: p.total }) : t('Updating…')),
         });
         window.TLV.saveResult(next);
         updated();
@@ -69,7 +70,7 @@
       } catch (err) {
         // try again at the next interval rather than every 30 seconds
         updated();
-        say(`Automatic update failed: ${String(err?.message || err)}`);
+        say(t('Automatic update failed: {reason}', { reason: String(err?.message || err) }));
         busy = false;
       }
     }
@@ -84,7 +85,7 @@
   if (hide) {
     const on = window.Shared.hidden;
     hide.setAttribute('aria-pressed', String(on));
-    hide.textContent = on ? 'Show amounts' : 'Hide amounts';
+    hide.textContent = on ? t('Show amounts') : t('Hide amounts');
     hide.classList.toggle('primary', on);
     hide.addEventListener('click', () => { pref.set('tlv-hide', on ? '0' : '1'); reloadInPlace(); });
   }
@@ -95,7 +96,7 @@
     // the saved file holds your full figures, whatever is shown on screen
     save.disabled = true;
     save.style.cursor = 'not-allowed';
-    save.title = 'Show amounts first: a saved report always contains your dollar figures.';
+    save.title = t('Show amounts first: a saved report always contains your dollar figures.');
   }
   save?.addEventListener('click', async () => {
     try {
@@ -106,15 +107,17 @@
       sellCheck.trades = (activity || []).filter((x) => x.type === 'BUY' || x.type === 'SELL');
       let html = template.replace('__DATA__', () => JSON.stringify(sellCheck).replace(/</g, '\\u003c'));
       const theme = window.TLV.theme();
-      if (theme) html = html.replace('<html lang="en">', `<html lang="en" data-theme="${theme}">`);
+      // the saved file opens in this theme and this language
+      const lang = window.I18n?.lang || 'en';
+      html = html.replace('<html lang="en">', `<html lang="${lang}" data-lang="${lang}"${theme ? ` data-theme="${theme}"` : ''}>`);
       const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-      const a = Object.assign(document.createElement('a'), { href: url, download: `Long-Term Sell Check ${data.asof.slice(0, 10)}.html` });
+      const a = Object.assign(document.createElement('a'), { href: url, download: t('Long-Term Sell Check {date}.html', { date: data.asof.slice(0, 10) }) });
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch {
-      say("The report couldn't be saved. Try again.");
+      say(t('The report couldn\'t be saved. Try again.'));
     }
   });
 
@@ -129,8 +132,8 @@
       try { sessionStorage.removeItem('tlv-sel'); } catch {}
       return location.assign('./?new');
     }
-    forget.textContent = 'Click again to forget';
+    forget.textContent = t('Click again to forget');
     forget.classList.add('danger');
-    armed = setTimeout(() => { armed = null; forget.textContent = 'Forget this result'; forget.classList.remove('danger'); }, 4000);
+    armed = setTimeout(() => { armed = null; forget.textContent = t('Forget this result'); forget.classList.remove('danger'); }, 4000);
   });
 })();

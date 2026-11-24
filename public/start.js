@@ -1,6 +1,7 @@
 'use strict';
 (() => {
   const MAX_BYTES = 25 * 1024 * 1024;
+  const t = window.Shared.t;
   const fresh = new URLSearchParams(location.search).has('new');
 
   // A saved result opens straight away; "Upload new file" comes here with ?new.
@@ -24,25 +25,25 @@
 
   function onProgress(s) {
     if (s.step !== 'prices') return;
-    workText.textContent = s.done < s.total ? `Getting prices · ${s.done + 1} of ${s.total}` : 'Building your report…';
-    workSub.textContent = s.ticker ? `Prices and history for ${s.ticker}` : 'Almost done.';
+    workText.textContent = s.done < s.total ? t('Getting prices · {n} of {total}', { n: s.done + 1, total: s.total }) : t('Building your report…');
+    workSub.textContent = s.ticker ? t('Prices and history for {ticker}', { ticker: s.ticker }) : t('Almost done.');
     progress(10 + 88 * (s.done / Math.max(1, s.total)));
   }
 
   async function open(file) {
     if (panel.dataset.state === 'working') return;
-    if (!/\.(qfx|ofx)$/i.test(file.name)) return fail(`“${file.name}” isn't a Quicken export. Choose a file ending in .qfx or .ofx.`);
-    if (file.size > MAX_BYTES) return fail('That file is larger than 25 MB, which is too big for a Quicken export.');
+    if (!/\.(qfx|ofx)$/i.test(file.name)) return fail(t('“{name}” isn\'t a Quicken export. Choose a file ending in .qfx or .ofx.', { name: file.name }));
+    if (file.size > MAX_BYTES) return fail(t('That file is larger than 25 MB, which is too big for a Quicken export.'));
     setState('working');
-    workText.textContent = 'Reading your file…';
-    workSub.textContent = 'Rebuilding every purchase from your export.';
+    workText.textContent = t('Reading your file…');
+    workSub.textContent = t('Rebuilding every purchase from your export.');
     progress(6);
     try {
       // read here, in the browser; the file itself is never sent anywhere
       const text = new TextDecoder('latin1').decode(await file.arrayBuffer());
       const data = await window.Lots.buildData(text, { method: 'FIFO', fetchQuote: window.Prices.fetchQuote, fetchSeries: window.Prices.fetchSeries, onProgress });
       try { localStorage.setItem('tlv-last-update', String(Date.now())); } catch {}
-      if (!window.TLV.saveResult(data)) throw new Error("This browser doesn't allow sites to keep data, so the report can't be shown. Try a normal (not private) window.");
+      if (!window.TLV.saveResult(data)) throw new Error(t('This browser doesn\'t allow sites to keep data, so the report can\'t be shown. Try a normal (not private) window.'));
       location.assign('performance');
     } catch (err) {
       fail(String(err?.message || err));
@@ -74,7 +75,7 @@
     if (panel.dataset.state === 'working') return;
     const files = [...(e.dataTransfer?.files || [])];
     if (!files.length) return setState('idle');
-    if (files.length > 1) return fail('Drop one file at a time.');
+    if (files.length > 1) return fail(t('Drop one file at a time.'));
     open(files[0]);
   });
 })();

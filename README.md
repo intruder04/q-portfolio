@@ -21,6 +21,7 @@ On the report:
 | **Share card** (Performance page) | A ready-to-post image of your returns, percentages only: total return against the index, best performers, and today, this year, the last 12 months and per year. **Save image** or **Copy image**; it's made in your browser |
 | **Save report** | Downloads the report as one HTML file that opens in any browser, even offline |
 | **Forget this result** | Removes the saved result from this browser, along with the sectors you chose and anything else that names your stocks (click twice to confirm) |
+| **EN / RU** (next to Theme, on every page) | Shows the site in English or Russian, numbers and dates included. Kept in this browser; without a choice, your browser's language decides. A saved report opens in the language it was saved in and has its own switch |
 | **Theme** (top right of both pages) | System, Light, Dark, GitHub Light/Dark, One Dark, Dracula, Tokyo Night, Catppuccin Latte/Mocha, Nord, Solarized Light/Dark. Each option shows its colors, and moving through the list (mouse or arrow keys) previews it on the page; Esc undoes the preview. |
 
 ## Performance page

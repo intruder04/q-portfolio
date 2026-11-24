@@ -47,3 +47,13 @@
 @media (max-width: 480px) {
   .tp-list { position: fixed; left: 16px; right: 16px; top: auto; width: auto; margin-top: 6px; }
 }
+
+/* Language switch: EN | RU, made by i18n.js inside any .lang-switch */
+.lang-sw { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--neutral-bg); }
+.lang-sw button {
+  font: 600 .78rem/1 var(--sans); letter-spacing: .02em; color: var(--muted); background: none;
+  border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer;
+}
+.lang-sw button:hover { color: var(--fg); }
+.lang-sw button[aria-pressed="true"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.lang-sw button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

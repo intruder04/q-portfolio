@@ -87,6 +87,8 @@ th[aria-sort="descending"] button::after { content: " ▼"; }
 .logo::before { content: attr(data-l); }
 .logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; opacity: 0; }
 .logo img.ok { opacity: 1; }
+/* white artwork on a transparent background (made for dark backgrounds) gets a dark tile */
+.logo img.on-dark { background: #1f2328; }
 /* logo, then ticker over company name */
 .stock { display: flex; align-items: center; min-width: 0; }
 .stock > span:last-child { min-width: 0; }

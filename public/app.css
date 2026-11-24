@@ -11,8 +11,11 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--
 .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   background: var(--bg); border-bottom: 1px solid var(--line); }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
 .brand svg { stroke: var(--accent); }
+.top-tools { display: flex; align-items: center; gap: 12px; }
+/* phones: the picker shows the theme, so its label goes */
+@media (max-width: 480px) { .top-tools { gap: 8px; } .theme-pick .tp-label { display: none; } }
 .theme-pick { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; user-select: none; }
 .back { color: var(--accent); font-weight: 600; text-decoration: none; margin-top: 4px; }
 .back:hover { text-decoration: underline; text-underline-offset: 3px; }

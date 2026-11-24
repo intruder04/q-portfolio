@@ -124,16 +124,31 @@ try { hidden = typeof window !== 'undefined' && window.localStorage.getItem('tlv
 const MASK = '•••';
 const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
 
+// ---------- language (i18n.js) ----------
+// Text and number formats follow the chosen language. Without i18n.js (the tests), English.
+const I18N = typeof window !== 'undefined' ? window.I18n : null;
+const LOCALE = I18N?.locale || 'en-US';
+const t = I18N ? I18N.t : (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : s);
+const plural = I18N ? I18N.plural : (n, one, many) => (n === 1 ? one : many);
+const point = (s) => (LOCALE === 'en-US' ? s : s.replace('.', ','));   // decimal comma in Russian
+const noYear = (s) => s.replace(/\s?г\.$/, '');                          // "24 нояб. 2026 г." → "24 нояб. 2026"
+// a short month and year, for chart axes
+const axisDate = (d, withYear) => noYear(d.toLocaleDateString(LOCALE, { month: 'short', year: withYear, timeZone: 'UTC' }));
+
 // ---------- formatting ----------
-const money = (v, dp = 0) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
-const signed = (v) => { v = Math.round(v); if (hidden) return sign(v) + '$' + MASK; return (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US'); };
-const compact = (v) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(v));
+const money = (v, dp = 0) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString(LOCALE, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const signed = (v) => { v = Math.round(v); if (hidden) return sign(v) + '$' + MASK; return (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString(LOCALE); };
+const compact = (v) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Intl.NumberFormat(LOCALE, { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(v));
 const signedCompact = (v) => (v > 0 ? '+' : '') + compact(v);
-const pct = (v, dp = 1) => (v == null ? '—' : (v * 100).toFixed(dp) + '%');
-const signedPct = (v, dp = 1) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(dp) + '%');
-const num = (v, dp = 3) => hidden ? MASK : v.toLocaleString('en-US', { maximumFractionDigits: dp });
-const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-const fmtMonth = (ym, short) => new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: short ? 'short' : 'long', year: short ? '2-digit' : 'numeric', timeZone: 'UTC' });
+const pct = (v, dp = 1) => (v == null ? '—' : point((v * 100).toFixed(dp)) + '%');
+const signedPct = (v, dp = 1) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + point(Math.abs(v * 100).toFixed(dp)) + '%');
+const num = (v, dp = 3) => hidden ? MASK : v.toLocaleString(LOCALE, { maximumFractionDigits: dp });
+const count = (v) => v.toLocaleString(LOCALE);                           // a count, never hidden
+const fmtDate = (iso) => noYear(new Date(iso + 'T00:00:00Z').toLocaleDateString(LOCALE, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }));
+const fmtMonth = (ym, short) => {
+  const s = noYear(new Date(ym + '-01T00:00:00Z').toLocaleDateString(LOCALE, { month: short ? 'short' : 'long', year: short ? '2-digit' : 'numeric', timeZone: 'UTC' }));
+  return short ? s : s[0].toUpperCase() + s.slice(1);                    // "ноябрь 2026" → "Ноябрь 2026"
+};
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const cls = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
 const clsUsd = (v) => cls(Math.round(v)); // dollars: no color for amounts that round to $0
@@ -144,8 +159,31 @@ const clsUsd = (v) => cls(Math.round(v)); // dollars: no color for amounts that 
 // loads, and stays if there's no logo (or in a saved report opened offline).
 const logo = (t, size = 20) =>
   `<span class="logo" data-l="${esc(String(t)[0] || '')}" style="--s:${size}px" aria-hidden="true"><img src="api/logo?symbol=${encodeURIComponent(t)}" alt="" loading="lazy" decoding="async"></span>`;
+// Some logos are white artwork on a transparent background, made for dark backgrounds;
+// on the usual white tile they'd vanish. True when most of the drawn pixels are near-white
+// and a fair part of the image is see-through (an opaque logo keeps its own background).
+function lightLogo(img) {
+  try {
+    const n = 32, c = document.createElement('canvas');
+    c.width = c.height = n;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, n, n);
+    const px = g.getImageData(0, 0, n, n).data;
+    let clear = 0, drawn = 0, white = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i + 3] < 40) { clear++; continue; }
+      drawn++;
+      if (px[i] > 225 && px[i + 1] > 225 && px[i + 2] > 225) white++;
+    }
+    return drawn > 0 && clear / (n * n) > 0.15 && white / drawn > 0.5;
+  } catch { return false; }
+}
 if (typeof document !== 'undefined') {
-  document.addEventListener('load', (e) => { if (e.target.matches?.('.logo img')) e.target.classList.add('ok'); }, true);
+  document.addEventListener('load', (e) => {
+    if (!e.target.matches?.('.logo img')) return;
+    if (lightLogo(e.target)) e.target.classList.add('on-dark');
+    e.target.classList.add('ok');
+  }, true);
   document.addEventListener('error', (e) => { if (e.target.matches?.('.logo img')) e.target.remove(); }, true);
 }
 
@@ -163,8 +201,8 @@ const api = {
   hidden, DAY_MS, anniversary, addDays, daysBetween, nyStamp, nyDay, sellOrder,
   lossSale, harvest, realizedByYear,
   DEFAULT_TAX, taxRates, estimateTax,
-  money, signed, compact, signedCompact, pct, signedPct, num, fmtDate, fmtMonth, esc, cls, clsUsd,
-  niceStep, svgEl, logo,
+  money, signed, compact, signedCompact, pct, signedPct, num, count, fmtDate, fmtMonth, axisDate, esc, cls, clsUsd,
+  niceStep, svgEl, logo, lightLogo, t, plural, LOCALE,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else window.Shared = api;

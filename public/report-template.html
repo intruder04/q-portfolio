@@ -96,6 +96,8 @@ th[aria-sort="descending"] button::after { content: " ▼"; }
 .logo::before { content: attr(data-l); }
 .logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; opacity: 0; }
 .logo img.ok { opacity: 1; }
+/* white artwork on a transparent background (made for dark backgrounds) gets a dark tile */
+.logo img.on-dark { background: #1f2328; }
 /* logo, then ticker over company name */
 .stock { display: flex; align-items: center; min-width: 0; }
 .stock > span:last-child { min-width: 0; }
@@ -316,6 +318,13 @@ tr.in td:first-child { padding-left: 32px; }
 .sw.ath { width: 16px; height: 0; border-radius: 0; border-top: 2px dashed var(--ath); }
 .sw.cut { width: 0; height: 12px; border-radius: 0; border-left: 2px solid var(--fg); opacity: .5; }
 
+/* the saved report's language switch (the site's pages style theirs in picker.css) */
+.lang-sw { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--neutral-bg); }
+.lang-sw button { font: 600 .78rem/1 var(--sans); color: var(--muted); background: none; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+.lang-sw button:hover { color: var(--fg); }
+.lang-sw button[aria-pressed="true"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.lang-sw button:focus-visible { outline: 2px solid var(--lt); outline-offset: 1px; }
+
 @media (max-width: 760px) { .mid-only { display: none; } }
 @media (max-width: 640px) { #chart { min-height: 280px; } .best-card dl { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: no-preference) { tr.pick td { transition: background .15s; } }
@@ -329,6 +338,7 @@ tr.in td:first-child { padding-left: 32px; }
     <h1>Sell check</h1>
     <p class="sub" id="asof"></p>
   </div>
+  <div class="lang-switch standalone"></div>
 </header>
 <p class="lede" id="problem" hidden></p>
 
@@ -369,7 +379,7 @@ tr.in td:first-child { padding-left: 32px; }
 <section class="card" id="rank">
   <div>
     <h2>Which stocks to sell now</h2>
-    <p class="note">Ranked by how close today's price is to the stock's all-time high. Only shares held over a year get the lower long-term rate. <b>Sell up to</b> is how many dollars you can sell with all of the profit long-term; <b>Est. tax</b> is the tax on that profit at your rates. Hover a gauge for the price and the all-time high; click a row to see every buy.</p>
+    <p class="note" data-i18n="rank-note">Ranked by how close today's price is to the stock's all-time high. Only shares held over a year get the lower long-term rate. <b>Sell up to</b> is how many dollars you can sell with all of the profit long-term; <b>Est. tax</b> is the tax on that profit at your rates. Hover a gauge for the price and the all-time high; click a row to see every buy.</p>
   </div>
   <div class="legend">
     <span><span class="meter hot" style="width:70px" aria-hidden="true"><i style="width:95%"></i><b style="left:80%"></b><b style="left:90%"></b></span>The bar fills to today's price as a share of the all-time high. The ticks mark 80% and 90%: past 90% is a sell candidate, 80–90% is near the high.</span>
@@ -467,7 +477,7 @@ tr.in td:first-child { padding-left: 32px; }
 <section class="card" id="soon">
   <div>
     <h2>Turning long-term in the next 90 days</h2>
-    <p class="note">If you're close to one of these dates, waiting can mean paying the long-term rate instead of your income rate. <b>Tax saved by waiting</b> is the difference on today's profit, at your rates.</p>
+    <p class="note" data-i18n="soon-note">If you're close to one of these dates, waiting can mean paying the long-term rate instead of your income rate. <b>Tax saved by waiting</b> is the difference on today's profit, at your rates.</p>
   </div>
   <div class="tall">
     <table id="soon-table">
@@ -480,7 +490,7 @@ tr.in td:first-child { padding-left: 32px; }
 <section class="card" id="losses">
   <div>
     <h2>Losses you could use</h2>
-    <p class="note">Shares that are worth less than you paid. Selling them turns the loss into a deduction: it offsets gains, then up to $3,000 of other income a year, and the rest carries forward. <b>Tax it could offset</b> is the most it's worth at your rates. A loss is blocked (a wash sale) if you bought the same stock within 30 days before or after selling.</p>
+    <p class="note" data-i18n="losses-note">Shares that are worth less than you paid. Selling them turns the loss into a deduction: it offsets gains, then up to $3,000 of other income a year, and the rest carries forward. <b>Tax it could offset</b> is the most it's worth at your rates. A loss is blocked (a wash sale) if you bought the same stock within 30 days before or after selling.</p>
   </div>
   <p class="note" id="loss-none" hidden>None of your shares are below what you paid.</p>
   <div class="scroll">
@@ -513,10 +523,10 @@ tr.in td:first-child { padding-left: 32px; }
     <li id="n-warn" hidden></li>
     <li id="n-wash"></li>
     <li>Wash sale checks look only at this account's purchases of the same stock. Purchases in your other accounts (retirement accounts and a spouse's included), and of nearly identical funds, count too.</li>
-    <li>A share is long-term when it's sold after the one-year anniversary of its purchase. <b>Long-term from</b> is the first day that applies.</li>
+    <li data-i18n="how-long-term">A share is long-term when it's sold after the one-year anniversary of its purchase. <b>Long-term from</b> is the first day that applies.</li>
     <li>When you sell by dollar amount, your broker picks the shares. Some sell losing shares first, then the shares with the smallest tax (usually long-term gains); others sell the oldest first, the IRS default. Your long-term shares are your oldest, so selling up to their value creates no short-term gains under either rule. After a sale, your broker's cost basis details show which shares it used.</li>
-    <li><b>Sales by tax year</b> come from the sales in your export, with each sale's shares split into short- and long-term. Dividends, other accounts and losses carried over from earlier years aren't included.</li>
-    <li><b>Tax estimates</b> use the rates at the top: long-term gains at your long-term rate, short-term gains at your income tax bracket, plus your state rate and the 3.8% tax if you ticked it. A loss of one kind offsets a gain of the other. Deductions, limits and your other gains and losses for the year aren't counted.</li>
+    <li data-i18n="how-years"><b>Sales by tax year</b> come from the sales in your export, with each sale's shares split into short- and long-term. Dividends, other accounts and losses carried over from earlier years aren't included.</li>
+    <li data-i18n="how-tax"><b>Tax estimates</b> use the rates at the top: long-term gains at your long-term rate, short-term gains at your income tax bracket, plus your state rate and the 3.8% tax if you ticked it. A loss of one kind offsets a gain of the other. Deductions, limits and your other gains and losses for the year aren't counted.</li>
     <li>Current prices and all-time highs come from Yahoo Finance when this report was made. The all-time high is the highest intraday price ever, adjusted for splits. The verdicts use simple cutoffs; being near a high doesn't predict where a price goes next.</li>
     <li>This is a holding-period and tax estimate, not tax or investment advice.</li>
   </ul>
@@ -528,6 +538,568 @@ tr.in td:first-child { padding-left: 32px; }
 
 <script id="data" type="application/json">__DATA__</script>
 <script>
+/* I18N:BEGIN */
+'use strict';
+{
+// The pages' language: English, as written in the code, or Russian. The choice is kept in
+// this browser (tlv-lang); with none, a saved report uses the language it was saved in,
+// and otherwise the browser's language decides.
+//
+//   t('English text {n}', { n })   the text in the chosen language, with {name} filled in
+//   plural(n, 'sale', 'sales', 'продажа', 'продажи', 'продаж')
+//   apply()                         translates the page's own text once, as it loads:
+//     - an element with data-i18n="key" gets the HTML stored under '#key'
+//     - any other text, and title / aria-label / placeholder, is looked up as written
+//
+// Add ?i18n to a page's address to list untranslated text in the console.
+// The sell check carries a copy of this file, so a saved report works offline;
+// scripts/sync.mjs keeps that copy in step.
+
+const KEY = 'tlv-lang';
+const LANGS = ['en', 'ru'];
+const browser = typeof document !== 'undefined';
+
+function pick() {
+  try { const v = localStorage.getItem(KEY); if (LANGS.includes(v)) return v; } catch {}
+  const saved = document.documentElement.getAttribute('data-lang');
+  if (LANGS.includes(saved)) return saved;
+  return /^ru\b/i.test(navigator.language || '') ? 'ru' : 'en';
+}
+const lang = browser ? pick() : 'en';
+
+/* RU:BEGIN */
+// English as written in the pages and scripts → Russian. Keys starting with # are whole
+// blocks marked data-i18n="…" in the pages.
+const RU = {
+  // ---- everywhere ----
+  'Language': 'Язык',
+  'Q portfolio': 'Q portfolio',
+  'Theme': 'Тема',
+  'System': 'Системная',
+  'Follows your device': 'Как на устройстве',
+  'Popular themes': 'Популярные темы',
+  'Light': 'Светлая',
+  'Dark': 'Тёмная',
+  'Results': 'Результаты',
+  'Performance': 'Доходность',
+  'Sell check': 'Что продать',
+  'Upload new file': 'Загрузить новый файл',
+  'Refresh prices': 'Обновить цены',
+  'Update prices automatically': 'Обновлять цены автоматически',
+  'Updates run while the US market is open (9:30 AM to 4:00 PM New York time), plus once after the close, and pause while this tab is hidden.':
+    'Обновления идут, пока открыт рынок США (с 9:30 до 16:00 по Нью-Йорку), и ещё раз после закрытия; пока вкладка скрыта, они на паузе.',
+  'Update manually': 'Обновлять вручную',
+  'Every 5 min': 'Каждые 5 мин',
+  'Every 15 min': 'Каждые 15 мин',
+  'Every 30 min': 'Каждые 30 мин',
+  'Every hour': 'Каждый час',
+  'Hides every dollar amount and share count, leaving percentages, so you can share a screenshot':
+    'Скрывает все суммы в долларах и количество акций, оставляя проценты, чтобы можно было поделиться скриншотом',
+  'Hide amounts': 'Скрыть суммы',
+  'Show amounts': 'Показать суммы',
+  'Save report': 'Сохранить отчёт',
+  'Forget this result': 'Забыть этот результат',
+  'Click again to forget': 'Нажмите ещё раз, чтобы забыть',
+  'Show amounts first: a saved report always contains your dollar figures.': 'Сначала покажите суммы: сохранённый отчёт всегда содержит ваши суммы в долларах.',
+  'Long-Term Sell Check {date}.html': 'Что продать {date}.html',
+  'The report couldn\'t be saved. Try again.': 'Не удалось сохранить отчёт. Попробуйте ещё раз.',
+  'Getting prices · {n} of {total}': 'Загружаем цены · {n} из {total}',
+  'Updating prices · {n} of {total}': 'Обновляем цены · {n} из {total}',
+  'Updating…': 'Обновляем…',
+  'Automatic update failed: {reason}': 'Автообновление не удалось: {reason}',
+  'This page couldn\'t be drawn:': 'Не удалось показать страницу:',
+  'Try <b>Refresh prices</b>, or upload your file again.': 'Нажмите <b>Обновить цены</b> или загрузите файл ещё раз.',
+  'Prices as of {date}, {time} New York time': 'Цены на {date}, {time} по Нью-Йорку',
+  '{a} of {b}': '{a} из {b}',
+  'All stocks': 'Все акции',
+  'Today': 'Сегодня',
+  'This year': 'С начала года',
+  'Bought': 'Куплено',
+  'Sold': 'Продано',
+  'Value': 'Стоимость',
+  'Value now': 'Стоимость сейчас',
+  'Stock': 'Акция',
+  'Shares': 'Акции',
+  'Price': 'Цена',
+  'Date': 'Дата',
+  'Gain': 'Прибыль',
+  'Dividends': 'Дивиденды',
+  'Long-term shares': 'Долгосрочные акции',
+  'Close': 'Закрыть',
+  'How this is worked out': 'Как это считается',
+  'Totals': 'Итоги',
+  'Show': 'Показать',
+
+  // ---- upload page ----
+  'See which shares are long-term': 'Какие акции уже долгосрочные',
+  'Open your brokerage\'s Quicken export to see every purchase, its cost basis, and which shares you can sell at the lower long-term tax rate.':
+    'Откройте выгрузку Quicken от вашего брокера: вы увидите каждую покупку, её стоимость и какие акции можно продать по более низкой ставке налога для долгосрочных акций.',
+  '← Back to your last result': '← Вернуться к последнему результату',
+  'Drop your .qfx file here': 'Перетащите сюда файл .qfx',
+  'Release to open': 'Отпустите, чтобы открыть',
+  'or': 'или',
+  'Choose File…': 'Выбрать файл…',
+  '.qfx or .ofx · up to 25 MB': '.qfx или .ofx · до 25 МБ',
+  'Progress': 'Ход загрузки',
+  'Couldn\'t open that file': 'Не удалось открыть файл',
+  'Choose another file': 'Выбрать другой файл',
+  '#privacy': 'Файл читается в этом браузере и никуда не загружается. Отправляются только тикеры — в поиск цен этого сайта, за текущими ценами. Последний результат хранится только в этом браузере, чтобы он был здесь в следующий раз; кнопка <b>Забыть этот результат</b> в отчёте удаляет его.',
+  'Reading your file…': 'Читаем файл…',
+  'Rebuilding every purchase from your export.': 'Восстанавливаем каждую покупку из выгрузки.',
+  'Building your report…': 'Собираем отчёт…',
+  'Prices and history for {ticker}': 'Цены и история {ticker}',
+  'Almost done.': 'Почти готово.',
+  '“{name}” isn\'t a Quicken export. Choose a file ending in .qfx or .ofx.': '«{name}» — не выгрузка Quicken. Выберите файл с расширением .qfx или .ofx.',
+  'That file is larger than 25 MB, which is too big for a Quicken export.': 'Файл больше 25 МБ — слишком много для выгрузки Quicken.',
+  'This browser doesn\'t allow sites to keep data, so the report can\'t be shown. Try a normal (not private) window.':
+    'Этот браузер не разрешает сайтам хранить данные, поэтому отчёт не показать. Откройте обычное (не приватное) окно.',
+  'Drop one file at a time.': 'Перетаскивайте по одному файлу.',
+  'This doesn\'t look like a Quicken (.qfx) export.': 'Это не похоже на выгрузку Quicken (.qfx).',
+  'No open stock positions were found in this export. If the shares were transferred out, export the account they moved to.':
+    'В выгрузке нет открытых позиций по акциям. Если акции перевели на другой счёт, выгрузите тот счёт.',
+  'no response': 'нет ответа',
+  'network error': 'ошибка сети',
+  'Couldn\'t get prices for {symbol} ({reason}). Check your internet connection and try again.': 'Не удалось получить цены {symbol} ({reason}). Проверьте подключение к интернету и попробуйте ещё раз.',
+  'No current price for {symbol}.': 'Нет текущей цены {symbol}.',
+  'No price history for {symbol}.': 'Нет истории цен {symbol}.',
+  'Couldn\'t get details for {symbol}.': 'Не удалось получить данные о {symbol}.',
+
+  // ---- performance page ----
+  'Portfolio Performance': 'Доходность портфеля',
+  'Compare with': 'Сравнить с',
+  'Total US market': 'Весь рынок США',
+  'Nasdaq 100': 'Nasdaq 100',
+  'total US market': 'VTI (весь рынок США)',
+  'Period': 'Период',
+  '6M': '6 мес',
+  'YTD': 'С нач. года',
+  '1Y': '1 год',
+  '2Y': '2 года',
+  'All': 'Всё',
+  'Share card': 'Карточка',
+  'Percentages only: no dollar amounts or share counts. Made in this browser.': 'Только проценты: без сумм в долларах и количества акций. Создаётся в этом браузере.',
+  'Save image': 'Сохранить картинку',
+  'Copy image': 'Копировать картинку',
+  'Upload your file again to see performance': 'Загрузите файл ещё раз, чтобы увидеть доходность',
+  'This result was saved before the performance page existed, so it doesn\'t have your purchase history yet. Uploading the same export again adds it.':
+    'Этот результат сохранён до появления страницы доходности, поэтому в нём нет истории покупок. Загрузите ту же выгрузку ещё раз — она добавится.',
+  'Upload your file': 'Загрузить файл',
+  'Your gains': 'Ваша прибыль',
+  'Last week': 'За неделю',
+  'Last': 'За последние',
+  'years': 'лет',
+  '#gains-note': 'Прибыль не учитывает внесённые или выведенные деньги; дивиденды считаются прибылью. Проценты — доходность, взвешенная по времени, рядом с доходностью индекса за тот же период.',
+  'Total gain': 'Общая прибыль',
+  'Compared with the market': 'По сравнению с рынком',
+  'Your yearly return': 'Ваша годовая доходность',
+  'Largest drop': 'Наибольшая просадка',
+  'What you own': 'Что у вас есть',
+  'Color tiles by': 'Цвет плиток',
+  'Color': 'Цвет',
+  'Sector': 'Сектор',
+  'Your stocks by size': 'Ваши акции по размеру',
+  'Your stocks against the market': 'Ваши акции против рынка',
+  'Value ($)': 'Стоимость ($)',
+  'Return (%)': 'Доходность (%)',
+  'How each stock did': 'Как показала себя каждая акция',
+  '#holdings-note': '<b>Общая прибыль</b> складывает прибыль по акциям, которые у вас есть, прибыль от продаж и дивиденды. <b id="h-vs-label">vs market</b> сравнивает её с вложением тех же денег в те же дни в индекс.',
+  'Include stocks you sold': 'Показать проданные акции',
+  'Weight': 'Доля',
+  'Gain on shares held': 'Прибыль по текущим акциям',
+  'Gain on sales': 'Прибыль от продаж',
+  'Return': 'Доходность',
+  'vs market': 'против рынка',
+  'First bought': 'Первая покупка',
+  'Buying and selling': 'Покупки и продажи',
+  'Money you put into stocks and took out, by month.': 'Сколько денег вы вложили в акции и вывели, по месяцам.',
+  'Everything': 'Всё',
+  'Buys': 'Покупки',
+  'Sales': 'Продажи',
+  'Type': 'Тип',
+  'Amount': 'Сумма',
+  '#how-value': '<b>Стоимость</b> — акции на каждую неделю, умноженные на цену закрытия той недели с поправкой на сплиты; последняя точка — по сегодняшним ценам. Деньги на счёте не учитываются, только акции.',
+  '#how-put-in': '<b>Вложено</b> — потрачено на покупки минус получено от продаж. Покупки на дивиденды считаются вложенными деньгами, а дивиденды — прибылью, так что ничего не считается дважды.',
+  '#how-market': '<b>Те же деньги в рынке</b> — покупаем индекс на сумму каждой покупки в тот же день и продаём на сумму каждой продажи. Цены индекса включают реинвестированные дивиденды. Это самое честное «а что если»: те же суммы в те же дни.',
+  '#how-return': '<b>Доходность (%)</b> взвешена по времени: она показывает, как росли ваши акции, без учёта того, когда вы вносили деньги, поэтому именно её правильно сравнивать с индексом. <b>Ваша годовая доходность</b> взвешена по деньгам: сколько в год принёс ваш реальный выбор моментов.',
+  '#how-drop': '<b>Наибольшая просадка</b> — самое большое падение от предыдущего максимума доходности, взвешенной по времени.',
+  'Prices come from Yahoo Finance. A stock that\'s no longer listed uses the prices you traded at.': 'Цены — из Yahoo Finance. Для акций, которых больше нет на бирже, берутся цены ваших сделок.',
+  'This is a record of past results, not tax or investment advice.': 'Это запись прошлых результатов, а не налоговая или инвестиционная рекомендация.',
+  'In the last 6 months': 'За последние 6 месяцев',
+  'In the last year': 'За последний год',
+  'In the last 2 years': 'За последние 2 года',
+  'Since your first purchase': 'С первой покупки',
+  'Amounts are hidden': 'Суммы скрыты',
+  'Getting {index} prices…': 'Загружаем цены {index}…',
+  'No {index} prices to compare with.': 'Нет цен {index} для сравнения.',
+  '{date} (last trading day)': '{date} (последний торговый день)',
+  'Refresh prices to see today': 'Обновите цены, чтобы увидеть сегодняшний день',
+  'you\'ve invested {n} years': 'вы инвестируете {n} г.',
+  '{stocks} held': 'в портфеле {stocks}',
+  '{n} {trades} since {date}': '{n} {trades} с {date}',
+  'No price found for {list}: valued at what you last paid': 'Нет цены для {list}: оценено по последней цене покупки',
+  'Your stocks are worth {value}. You put in {invested} net, so you\'re {change}': 'Ваши акции стоят {value}. Вы вложили {invested} за вычетом продаж, так что вы {change}',
+  'up {amount}': 'в плюсе на {amount}',
+  'down {amount}': 'в минусе на {amount}',
+  ', counting {amount} of dividends': ' с учётом {amount} дивидендов',
+  'The same money in the {index} would be worth {value}, so you\'re {diff} the market.': 'Те же деньги в {index} стоили бы {value}, так что вы {diff} рынка.',
+  '{amount} ahead of': 'на {amount} впереди',
+  '{amount} behind': 'на {amount} позади',
+  '{amount} put in': 'вложено {amount}',
+  '{pct} on what you put in': '{pct} к вложенному',
+  '{amount} dividends': '{amount} дивидендов',
+  'Compared with the {index}': 'По сравнению с {index}',
+  'More return than the {index}: you {mine}, {index} {theirs}': 'Доходность выше, чем у {index}: у вас {mine}, у {index} {theirs}',
+  'Less return than the {index}: you {mine}, {index} {theirs}': 'Доходность ниже, чем у {index}: у вас {mine}, у {index} {theirs}',
+  'Ahead · the same money there: {amount}': 'Впереди · те же деньги там: {amount}',
+  'Behind · the same money there: {amount}': 'Позади · те же деньги там: {amount}',
+  'Shown after a year of history': 'Появится после года истории',
+  '{index}: {pct} a year with the same money': '{index}: {pct} в год с теми же деньгами',
+  'From a previous high, low in the week of {date}': 'От предыдущего максимума, дно на неделе {date}',
+  'No fall from a high so far': 'Падений от максимума пока не было',
+  'vs {index}': 'против {index}',
+  'Each tile is a stock, sized by its share of your portfolio and grouped by sector. Hover a tile for details; click one to change its sector. Holdings under 1.5% are drawn at 1.5% so they stay visible, with their real share on the label.':
+    'Каждая плитка — акция; её размер — доля в портфеле, плитки сгруппированы по секторам. Наведите на плитку, чтобы увидеть подробности; нажмите, чтобы сменить сектор. Позиции меньше 1,5% нарисованы как 1,5%, чтобы их было видно, а настоящая доля — на подписи.',
+  'Sector for {ticker}': 'Сектор для {ticker}',
+  'As Yahoo lists it: {sector}': 'Как в Yahoo: {sector}',
+  'Saved in this browser. Choose the first option to go back to Yahoo’s sector.': 'Сохраняется в этом браузере. Выберите первый вариант, чтобы вернуть сектор из Yahoo.',
+  '{ticker}, {sector}, {share} of your stocks, {value}, {gain} on shares held. Press Enter to change its sector.':
+    '{ticker}, {sector}, {share} ваших акций, {value}, {gain} по текущим акциям. Нажмите Enter, чтобы сменить сектор.',
+  '(your choice)': '(ваш выбор)',
+  'Share of your stocks': 'Доля в ваших акциях',
+  'Below what you paid': 'Ниже цены покупки',
+  'Above · full color at ±50%': 'Выше · полный цвет при ±50%',
+  'Looking up sectors for {stocks}…': 'Ищем секторы… ({stocks})',
+  'Your stocks': 'Ваши акции',
+  'Same money in the {index}': 'Те же деньги в {index}',
+  'Put in, net': 'Вложено (чистыми)',
+  'Your stocks (time-weighted)': 'Ваши акции (взвешенная по времени)',
+  'Each week\'s value of your stocks, against the same money put into the {index} on the same days. The bars underneath show what you bought and sold each week.':
+    'Стоимость ваших акций по неделям против тех же денег, вложенных в {index} в те же дни. Столбики внизу — что вы покупали и продавали каждую неделю.',
+  'How your stocks grew with your deposits taken out (time-weighted), against the {index}, from the start of the period.':
+    'Как росли ваши акции без учёта пополнений (взвешенная по времени доходность) против {index}, с начала периода.',
+  '(from {date})': '(с {date})',
+  'you put in {added} net (bought {bought}, sold {sold}), and your stocks gained {gain}': 'вы вложили {added} чистыми (куплено на {bought}, продано на {sold}), а ваши акции принесли {gain}',
+  ' including {amount} of dividends': ', включая {amount} дивидендов',
+  'The same money in the {index} would have gained {gain}.': 'Те же деньги в {index} принесли бы {gain}.',
+  'Time-weighted: you {mine}, the {index} {theirs}.': 'Взвешенная по времени доходность: у вас {mine}, у {index} {theirs}.',
+  'Value of your stocks against the {index}': 'Стоимость ваших акций против {index}',
+  'Time-weighted return against the {index}': 'Доходность, взвешенная по времени, против {index}',
+  ', +{n} more': ', и ещё {n}',
+  'Week ending {date}': 'Неделя до {date}',
+  'Money put in and taken out each month': 'Деньги, вложенные и выведенные по месяцам',
+  'Buy': 'Покупка',
+  'Sale': 'Продажа',
+  'Dividend': 'Дивиденд',
+  'Moved in': 'Зачисление',
+  'Moved out': 'Списание',
+  // sectors, as Yahoo names them
+  'Technology': 'Технологии',
+  'Communication Services': 'Связь и медиа',
+  'Consumer Cyclical': 'Товары не первой необходимости',
+  'Consumer Defensive': 'Товары первой необходимости',
+  'Healthcare': 'Здравоохранение',
+  'Financial Services': 'Финансы',
+  'Industrials': 'Промышленность',
+  'Energy': 'Энергетика',
+  'Utilities': 'Коммунальные услуги',
+  'Real Estate': 'Недвижимость',
+  'Basic Materials': 'Сырьё и материалы',
+  'Funds (ETFs)': 'Фонды (ETF)',
+  'Other': 'Другое',
+  'Sector unknown': 'Сектор неизвестен',
+
+  // ---- share card ----
+  'My portfolio': 'Мой портфель',
+  'As of {date}': 'На {date}',
+  'Total return since {month}': 'Общая доходность с первой покупки ({month})',
+  'Same return as the {index}': 'Та же доходность, что у {index}',
+  '{pct} more return than the {index}': 'на {pct} доходнее, чем {index}',
+  '{pct} less return than the {index}': 'на {pct} менее доходно, чем {index}',
+  'Best performers': 'Лучшие акции',
+  'Last 12 months': 'За 12 месяцев',
+  'Per year': 'В год',
+  'Last 6 months': 'За 6 месяцев',
+  'Percentages only · time-weighted returns with dividends; "per year" is money-weighted': 'Только проценты · доходность взвешена по времени, с дивидендами; «в год» — взвешена по деньгам',
+  'Could not make the image': 'Не удалось создать картинку',
+  'Portfolio performance {date}.png': 'Доходность портфеля {date}.png',
+  'Saved to your downloads.': 'Сохранено в загрузки.',
+  'Copied. Paste it into a message or post.': 'Скопировано. Вставьте в сообщение или пост.',
+  'This browser didn’t allow copying; use Save image instead.': 'Браузер не разрешил копирование; используйте «Сохранить картинку».',
+
+  // ---- sell check ----
+  'Your tax rates': 'Ваши налоговые ставки',
+  'Income tax bracket': 'Ставка подоходного налога',
+  'Long-term rate': 'Долгосрочная ставка',
+  'State': 'Штат',
+  '3.8% investment income tax': 'налог 3,8% на инвестиционный доход',
+  'Used for the tax estimates on this page and kept in this browser. Rough estimates: deductions, limits and your other gains and losses aren\'t counted.':
+    'Используются для оценки налога на этой странице и хранятся в этом браузере. Оценка приблизительная: вычеты, лимиты и другие ваши прибыли и убытки не учитываются.',
+  'Best to sell now': 'Лучше всего продать сейчас',
+  'You can sell as long-term': 'Можно продать как долгосрочные',
+  'Long-term profit in it': 'Долгосрочная прибыль в них',
+  'Estimated tax if you sold it': 'Примерный налог при продаже',
+  'Short-term shares': 'Краткосрочные акции',
+  'Turns long-term in 30 days': 'Станут долгосрочными за 30 дней',
+  'Which stocks to sell now': 'Какие акции продать сейчас',
+  '#rank-note': 'По тому, насколько сегодняшняя цена близка к историческому максимуму акции. Пониженную ставку для долгосрочных получают только акции, которые вы держите больше года. <b>Продать до</b> — сколько долларов можно продать так, чтобы вся прибыль была долгосрочной; <b>Налог</b> — налог на эту прибыль по вашим ставкам. Наведите на шкалу, чтобы увидеть цену и максимум; нажмите на строку, чтобы увидеть все покупки.',
+  'The bar fills to today\'s price as a share of the all-time high. The ticks mark 80% and 90%: past 90% is a sell candidate, 80–90% is near the high.':
+    'Шкала заполнена до сегодняшней цены как доли исторического максимума. Отметки — 80% и 90%: выше 90% — кандидат на продажу, 80–90% — близко к максимуму.',
+  'Verdict': 'Вывод',
+  'Price vs all-time high': 'Цена к максимуму',
+  'Sell up to (long-term)': 'Продать до (долгосрочно)',
+  'Long-term profit': 'Долгосрочная прибыль',
+  'Est. tax': 'Налог',
+  'Short-term profit': 'Краткосрочная прибыль',
+  'Next turns long-term': 'Следующая станет долгосрочной',
+  'Sell candidate': 'Кандидат на продажу',
+  'long-term gain, within 10% of its high': 'долгосрочная прибыль, до 10% ниже максимума',
+  'Near high': 'Близко к максимуму',
+  '10–20% below its high': 'на 10–20% ниже максимума',
+  'Below high': 'Ниже максимума',
+  'more than 20% below': 'больше чем на 20% ниже',
+  'At a loss': 'В убытке',
+  'long-term shares are below cost': 'долгосрочные акции дешевле цены покупки',
+  'Not yet': 'Пока нет',
+  'no long-term shares': 'нет долгосрочных акций',
+  'No price': 'Нет цены',
+  'All your purchases': 'Все ваши покупки',
+  'Every purchase you still own, with what you paid, and every buy and sale on the chart. Pick a stock to see just that stock and to estimate the tax on selling it.':
+    'Каждая покупка, которая у вас ещё есть, с ценой покупки, а на графике — каждая покупка и продажа. Выберите акцию, чтобы увидеть только её и оценить налог при продаже.',
+  'Choose a stock': 'Выберите акцию',
+  'Estimate the tax on a sale': 'Оценить налог при продаже',
+  'Type a dollar amount to see which shares would go and the tax': 'Введите сумму в долларах, чтобы увидеть, какие акции уйдут и какой будет налог',
+  'When you sell by dollar amount, your broker chooses which shares go. This shows the two most likely orders side by side, with the estimated tax at your rates.':
+    'Когда вы продаёте на сумму в долларах, брокер сам выбирает, какие акции продать. Здесь два самых вероятных порядка рядом, с примерным налогом по вашим ставкам.',
+  'Amount to sell': 'Сумма продажи',
+  'Oldest shares first': 'Сначала самые старые',
+  'Losses first, then long-term': 'Сначала убыточные, потом долгосрочные',
+  'Buy over a year ago': 'Покупка больше года назад',
+  'Buy in the last year': 'Покупка за последний год',
+  'One year ago': 'Год назад',
+  'Buys above the line, sales below; the farther from it, the larger (each grid line is 10× the one before)': 'Покупки над линией, продажи под ней; чем дальше от линии, тем больше сумма (каждая линия сетки в 10 раз больше предыдущей)',
+  'Long-term buy': 'Долгосрочная покупка',
+  'Short-term buy': 'Краткосрочная покупка',
+  'Weekly closing price': 'Цена закрытия недели',
+  'All-time high': 'Исторический максимум',
+  'Dot size = shares bought': 'Размер точки = куплено акций',
+  'Purchases and cost basis': 'Покупки и их стоимость',
+  'Group by stock': 'Группировать по акциям',
+  'Expand all': 'Развернуть все',
+  'Collapse all': 'Свернуть все',
+  'Cost / share': 'Цена покупки',
+  'Cost basis': 'Стоимость покупки',
+  'Gain %': 'Прибыль, %',
+  'Long-term from': 'Долгосрочно с',
+  'Status': 'Статус',
+  'Turning long-term in the next 90 days': 'Станут долгосрочными в ближайшие 90 дней',
+  '#soon-note': 'Если одна из этих дат близко, ожидание может означать налог по долгосрочной ставке вместо ставки подоходного налога. <b>Экономия от ожидания</b> — разница на сегодняшней прибыли по вашим ставкам.',
+  'Tax saved by waiting': 'Экономия от ожидания',
+  'Losses you could use': 'Убытки, которые можно использовать',
+  '#losses-note': 'Акции, которые сейчас стоят меньше, чем вы заплатили. Продажа превращает убыток в вычет: он уменьшает прибыль, затем до $3000 другого дохода в год, а остаток переносится на следующие годы. <b>Налог, который он может уменьшить</b> — максимум, сколько он стоит по вашим ставкам. Убыток не засчитывается (wash sale), если вы купили ту же акцию в пределах 30 дней до или после продажи.',
+  'None of your shares are below what you paid.': 'Ни одна ваша акция не стоит меньше цены покупки.',
+  'Shares below cost': 'Акции ниже цены покупки',
+  'Short-term loss': 'Краткосрочный убыток',
+  'Long-term loss': 'Долгосрочный убыток',
+  'Tax it could offset': 'Налог, который он может уменьшить',
+  'Wash sale check': 'Проверка wash sale',
+  'Your sales by tax year': 'Ваши продажи по налоговым годам',
+  'Year': 'Год',
+  'Proceeds': 'Выручка',
+  'Short-term gain': 'Краткосрочная прибыль',
+  'Long-term gain': 'Долгосрочная прибыль',
+  'Wash-sale losses not counted': 'Незасчитанные убытки (wash sale)',
+  'Wash sale checks look only at this account\'s purchases of the same stock. Purchases in your other accounts (retirement accounts and a spouse\'s included), and of nearly identical funds, count too.':
+    'Проверка wash sale смотрит только на покупки той же акции на этом счёте. Покупки на других ваших счетах (включая пенсионные и счета супруга или супруги) и почти идентичных фондов тоже считаются.',
+  '#how-long-term': 'Акция становится долгосрочной, если её продают после годовщины покупки. <b>Долгосрочно с</b> — первый такой день.',
+  'When you sell by dollar amount, your broker picks the shares. Some sell losing shares first, then the shares with the smallest tax (usually long-term gains); others sell the oldest first, the IRS default. Your long-term shares are your oldest, so selling up to their value creates no short-term gains under either rule. After a sale, your broker\'s cost basis details show which shares it used.':
+    'Когда вы продаёте на сумму в долларах, акции выбирает брокер. Одни продают сначала убыточные, потом с наименьшим налогом (обычно долгосрочные с прибылью); другие — сначала самые старые, как по умолчанию у IRS. Ваши долгосрочные акции — самые старые, поэтому продажа в пределах их стоимости не даёт краткосрочной прибыли ни при одном правиле. После продажи в данных брокера о стоимости покупки видно, какие акции он взял.',
+  '#how-years': '<b>Продажи по налоговым годам</b> взяты из продаж в вашей выгрузке; акции каждой продажи разделены на краткосрочные и долгосрочные. Дивиденды, другие счета и убытки, перенесённые с прошлых лет, не учитываются.',
+  '#how-tax': '<b>Оценки налога</b> используют ставки вверху: долгосрочная прибыль — по долгосрочной ставке, краткосрочная — по ставке подоходного налога, плюс ставка штата и налог 3,8%, если он отмечен. Убыток одного вида уменьшает прибыль другого. Вычеты, лимиты и другие ваши прибыли и убытки за год не учитываются.',
+  'Current prices and all-time highs come from Yahoo Finance when this report was made. The all-time high is the highest intraday price ever, adjusted for splits. The verdicts use simple cutoffs; being near a high doesn\'t predict where a price goes next.':
+    'Текущие цены и исторические максимумы взяты из Yahoo Finance на момент создания отчёта. Исторический максимум — самая высокая внутридневная цена за всё время с поправкой на сплиты. Выводы используют простые пороги; близость к максимуму не говорит, куда пойдёт цена дальше.',
+  'This is a holding-period and tax estimate, not tax or investment advice.': 'Это оценка срока владения и налога, а не налоговая или инвестиционная рекомендация.',
+  '{ticker}: sold {n} more shares than bought on {date}': '{ticker}: {date} продано на {n} акций больше, чем куплено',
+  'Purchases come from your Quicken export. Every buy and sell was replayed': 'Покупки взяты из вашей выгрузки Quicken. Каждая покупка и продажа воспроизведена',
+  ', including {splits} ({list})': ', включая {splits} ({list})',
+  'a split': 'сплит',
+  'These stocks don\'t match the share count in the export: {list}.': 'Эти акции не совпадают с количеством в выгрузке: {list}.',
+  'The result matches the share count in the export for every stock.': 'Количество каждой акции совпадает с выгрузкой.',
+  'No price could be found for {list}, so it\'s valued at what you last paid.': 'Не удалось найти цену для {list}, поэтому она оценена по последней цене покупки.',
+  'No price could be found for {list}, so they\'re valued at what you last paid.': 'Не удалось найти цены для {list}, поэтому они оценены по последней цене покупки.',
+  'Check these against your broker:': 'Сверьте с данными брокера:',
+  'Shares may have come from a transfer the export doesn\'t show.': 'Возможно, акции пришли переводом, которого нет в выгрузке.',
+  'The export doesn\'t say which purchase each past sale came from, so oldest-first is assumed (the IRS default).': 'В выгрузке не сказано, из какой покупки была каждая прошлая продажа, поэтому считается, что сначала продавались самые старые (по умолчанию у IRS).',
+  '<b>Wash sales:</b> {sales} at a loss had the same stock bought within 30 days, so {amount} of losses couldn\'t be claimed then. That amount was added to the cost of the replacement shares, and their holding period starts earlier. Those purchases are marked <b>Wash sale</b>.':
+    '<b>Wash sale:</b> {sales} в убыток с покупкой той же акции в пределах 30 дней, поэтому {amount} убытков тогда не засчитано. Эта сумма добавлена к стоимости новых акций, а их срок владения начинается раньше. Такие покупки отмечены <b>Wash sale</b>.',
+  '<b>Wash sales:</b> none found. A sale at a loss with the same stock bought within 30 days before or after would have its loss moved into the new shares’ cost.':
+    '<b>Wash sale:</b> не найдено. Если продать в убыток и купить ту же акцию за 30 дней до или после, убыток перейдёт в стоимость новых акций.',
+  'Long-term shares at a gain, trading within 20% of their all-time high, closest first. Sell up to the amount shown and all of the profit is long-term.':
+    'Долгосрочные акции в прибыли, цена которых не дальше 20% от исторического максимума, самые близкие первыми. Продайте не больше указанной суммы — и вся прибыль будет долгосрочной.',
+  'None of your long-term shares at a gain are near their all-time high right now.': 'Сейчас ни одна ваша долгосрочная акция в прибыли не близка к историческому максимуму.',
+  'Estimated tax': 'Примерный налог',
+  '{pct} of your stocks': '{pct} ваших акций',
+  'At your long-term rate of {pct}': 'По вашей долгосрочной ставке {pct}',
+  'If you sold every long-term share today': 'Если продать все долгосрочные акции сегодня',
+  'Profit {gain}, taxed at {pct} if sold now': 'Прибыль {gain}, налог {pct} при продаже сейчас',
+  'waiting saves about {amount}': 'ожидание сэкономит около {amount}',
+  'Nothing': 'Ничего',
+  'No price found': 'Цена не найдена',
+  '{ticker} is at {pct} of its all-time high: {price} now, {ath} at its high.': '{ticker} — {pct} от исторического максимума: сейчас {price}, на максимуме {ath}.',
+  'All long-term': 'Все долгосрочные',
+  '{pct} of its all-time high': '{pct} от исторического максимума',
+  'Price now': 'Цена сейчас',
+  'All-time high ({date})': 'Исторический максимум ({date})',
+  'Cost includes {amount} a share of loss that couldn\'t be claimed on a sale on {date}; its holding period starts earlier.': 'Стоимость включает {amount} на акцию — убыток, не засчитанный при продаже {date}; срок владения начинается раньше.',
+  'Long-term': 'Долгосрочные',
+  'Short-term': 'Краткосрочные',
+  'Wash sale': 'Wash sale',
+  '{a} of {b} long-term': 'долгосрочных {a} из {b}',
+  'Hide {ticker} purchases': 'Скрыть покупки {ticker}',
+  'Show {ticker} purchases': 'Показать покупки {ticker}',
+  'Buys and sales': 'Покупки и продажи',
+  'All {purchases} you still own, oldest first. Long-term rows can be sold at the lower rate.': 'Все покупки, которые у вас ещё есть ({purchases}), самые старые первыми. Долгосрочные строки можно продать по пониженной ставке.',
+  'Every {ticker} buy': 'Все покупки {ticker}',
+  'Price vs high': 'Цена к максимуму',
+  'Avg cost / share': 'Средняя цена покупки',
+  'sh': 'шт.',
+  'Every purchase of {ticker}, with what you paid. Long-term rows can be sold at the lower rate.': 'Каждая покупка {ticker} с ценой покупки. Долгосрочные строки можно продать по пониженной ставке.',
+  '{ticker} has no long-term shares yet. The first ones qualify on {date}.': 'У {ticker} пока нет долгосрочных акций. Первые станут долгосрочными {date}.',
+  'All long-term: {amount}': 'Все долгосрочные: {amount}',
+  'No long-term shares yet': 'Долгосрочных акций пока нет',
+  'Everything: {amount}': 'Всё: {amount}',
+  'Shares sold': 'Продано акций',
+  'From long-term shares': 'Из долгосрочных',
+  'From short-term shares': 'Из краткосрочных',
+  '<b>Long-term profit</b> (lower rate)': '<b>Долгосрочная прибыль</b> (пониженная ставка)',
+  '<b>Short-term profit</b> (income rate)': '<b>Краткосрочная прибыль</b> (ставка подоходного)',
+  'Loss blocked as a wash sale': 'Убыток, не засчитанный (wash sale)',
+  '<b>Estimated tax</b> at your rates': '<b>Примерный налог</b> по вашим ставкам',
+  'Wash sale: this sale includes shares sold at a loss, and you bought {ticker} on {bought}, within 30 days. About {amount} of the loss couldn\'t be claimed now; it would be added to the newer shares\' cost instead. To claim all of it, sell on or after {clear}.':
+    'Wash sale: в эту продажу входят акции в убытке, а вы покупали {ticker} {bought}, в пределах 30 дней. Около {amount} убытка сейчас не засчитают — он добавится к стоимости более новых акций. Чтобы засчитать весь убыток, продавайте {clear} или позже.',
+  'This sale includes up to {amount} of losses. To keep them, don\'t buy {ticker} again before {date}: a purchase within 30 days after the sale blocks the loss.':
+    'В эту продажу входит до {amount} убытков. Чтобы их засчитали, не покупайте {ticker} снова до {date}: покупка в течение 30 дней после продажи отменяет убыток.',
+  'Selling {amount} of {ticker} creates no short-term profit either way, so all of the profit is taxed at the long-term rate: about {tax} in tax.':
+    'Продажа {ticker} на {amount} ни при каком порядке не даёт краткосрочной прибыли, поэтому вся прибыль облагается по долгосрочной ставке: налог около {tax}.',
+  'Selling {amount} of {ticker} could create up to {profit} of short-term profit, taxed at your income rate (about {tax} in tax).':
+    'Продажа {ticker} на {amount} может дать до {profit} краткосрочной прибыли по ставке подоходного налога (налог около {tax}).',
+  'Sell {amount} or less to keep it all long-term.': 'Продайте на {amount} или меньше, чтобы вся прибыль была долгосрочной.',
+  '{ticker} has no long-term shares until {date}.': 'У {ticker} не будет долгосрочных акций до {date}.',
+  '{ticker} purchase prices and weekly closes': 'Цены покупок {ticker} и недельные закрытия',
+  '← long-term': '← долгосрочные',
+  'short-term →': 'краткосрочные →',
+  'All-time high {price}': 'Исторический максимум {price}',
+  'All-time high {price} ({date}, off chart)': 'Исторический максимум {price} ({date}, вне графика)',
+  'Bought {date}': 'Куплено {date}',
+  'Sold {date}': 'Продано {date}',
+  'Gain now': 'Прибыль сейчас',
+  'Long-term since': 'Долгосрочно с',
+  'Wash sale: cost includes a loss that couldn’t be claimed earlier.': 'Wash sale: стоимость включает убыток, который не засчитали раньше.',
+  'Week of {date}': 'Неделя {date}',
+  'Closing price': 'Цена закрытия',
+  'Paid': 'Заплачено',
+  'Every buy and sale by date and dollar amount': 'Все покупки и продажи по дате и сумме',
+  '↑ Bought': '↑ Куплено',
+  '↓ Sold': '↓ Продано',
+  'Nothing turns long-term in the next 90 days.': 'В ближайшие 90 дней ничего не станет долгосрочным.',
+  'Wait until {date}': 'Подождите до {date}',
+  'You bought more on {date}; selling now would block about {amount} of the loss.': 'Вы докупали {date}; продажа сейчас отменит около {amount} убытка.',
+  'Clear to sell': 'Можно продавать',
+  'Don\'t buy it again before {date}.': 'Не покупайте снова до {date}.',
+  'You haven\'t sold anything yet, so there are no gains to report.': 'Вы пока ничего не продавали, поэтому прибыли нет.',
+  'This result was saved before sales were split by tax year. Upload your file again to see them.': 'Этот результат сохранён до разделения продаж по налоговым годам. Загрузите файл ещё раз, чтобы их увидеть.',
+  'Gains and losses from the sales in your export. The estimated tax uses your rates at the top; dividends and other accounts aren\'t included.':
+    'Прибыли и убытки от продаж в вашей выгрузке. Налог посчитан по вашим ставкам вверху; дивиденды и другие счета не учитываются.',
+  '{year} short-term gain so far': 'Краткосрочная прибыль за {year}',
+  '{year} long-term gain so far': 'Долгосрочная прибыль за {year}',
+  'Taxed at {pct}': 'Налог {pct}',
+  'Estimated tax on {year} sales': 'Примерный налог на продажи {year}',
+  'A net loss: up to $3,000 offsets other income, the rest carries forward': 'Чистый убыток: до $3000 уменьшают другой доход, остаток переносится',
+  '{sales} this year': '{sales} в этом году',
+  'Losses you could still use': 'Убытки, которые ещё можно использовать',
+  'Nothing is below cost': 'Нет акций дешевле цены покупки',
+  'Selling them would cut this year\'s tax by about {amount}': 'Их продажа уменьшит налог за этот год примерно на {amount}',
+  'No gains to offset yet this year': 'В этом году пока нечего уменьшать',
+};
+/* RU:END */
+
+const dict = lang === 'ru' ? RU : {};
+const debug = browser && /[?&]i18n\b/.test(location.search);
+const missing = new Set();
+const miss = (k) => { if (debug && !missing.has(k)) { missing.add(k); console.warn('[i18n] untranslated:', k); } };
+
+const fill = (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : s);
+function t(en, vars) {
+  if (lang !== 'en' && !(en in dict)) miss(en);
+  return fill(dict[en] ?? en, vars);
+}
+const rules = new Intl.PluralRules(lang);
+function plural(n, one, many, ru1, ru2, ru5) {
+  if (lang !== 'ru') return n === 1 ? one : many;
+  const r = rules.select(n);
+  return r === 'one' ? ru1 : r === 'few' || r === 'other' ? ru2 : ru5; // 'other' is a fraction: 1,5 акции
+}
+
+function apply(root = document) {
+  document.documentElement.lang = lang;
+  if (lang !== 'en') {
+    for (const el of root.querySelectorAll('[data-i18n]')) {
+      const k = '#' + el.dataset.i18n;
+      if (k in dict) el.innerHTML = dict[k]; else miss(k);
+    }
+    const skip = 'script,style,[data-i18n],[translate="no"]';
+    const walk = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const k = n.nodeValue.replace(/\s+/g, ' ').trim();
+      if (!k || n.parentElement?.closest(skip)) continue;
+      if (k in dict) n.nodeValue = n.nodeValue.match(/^\s*/)[0] + dict[k] + n.nodeValue.match(/\s*$/)[0];
+      else if (/[A-Za-z]{3}/.test(k)) miss(k);
+    }
+    for (const a of ['title', 'aria-label', 'placeholder']) {
+      for (const el of root.querySelectorAll(`[${a}]`)) {
+        const v = el.getAttribute(a);
+        if (v in dict) el.setAttribute(a, dict[v]); else if (/[A-Za-z]{3}/.test(v)) miss(v);
+      }
+    }
+    document.title = document.title.split(' · ').map((p) => dict[p] ?? p).join(' · ');
+  }
+  for (const host of document.querySelectorAll('.lang-switch')) switcher(host);
+  document.documentElement.style.visibility = '';   // theme-boot.js hid the page until now
+}
+
+// EN | RU buttons; a choice reloads the page in place.
+function switcher(host) {
+  const box = document.createElement('span');
+  box.className = 'lang-sw';
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', t('Language'));
+  for (const [l, name] of [['en', 'English'], ['ru', 'Русский']]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.lang = l;
+    b.textContent = l.toUpperCase();
+    b.title = name;
+    b.setAttribute('aria-pressed', String(l === lang));
+    b.addEventListener('click', () => choose(l));
+    box.append(b);
+  }
+  host.replaceChildren(box);
+}
+function choose(l) {
+  if (l === lang) return;
+  try { localStorage.setItem(KEY, l); } catch {}
+  // come back to the same place on the page (toolbar.js restores it)
+  try { sessionStorage.setItem('tlv-scroll', JSON.stringify({ path: location.pathname, y: scrollY })); } catch {}
+  location.reload();
+}
+
+const api = { lang, locale: lang === 'ru' ? 'ru-RU' : 'en-US', t, plural, apply, RU };
+if (typeof module !== 'undefined' && module.exports) module.exports = api;
+else {
+  window.I18n = api;
+  apply();
+}
+}
+/* I18N:END */
 /* SHARED:BEGIN */
 'use strict';
 {
@@ -655,16 +1227,31 @@ try { hidden = typeof window !== 'undefined' && window.localStorage.getItem('tlv
 const MASK = '•••';
 const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
 
+// ---------- language (i18n.js) ----------
+// Text and number formats follow the chosen language. Without i18n.js (the tests), English.
+const I18N = typeof window !== 'undefined' ? window.I18n : null;
+const LOCALE = I18N?.locale || 'en-US';
+const t = I18N ? I18N.t : (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)) : s);
+const plural = I18N ? I18N.plural : (n, one, many) => (n === 1 ? one : many);
+const point = (s) => (LOCALE === 'en-US' ? s : s.replace('.', ','));   // decimal comma in Russian
+const noYear = (s) => s.replace(/\s?г\.$/, '');                          // "24 нояб. 2026 г." → "24 нояб. 2026"
+// a short month and year, for chart axes
+const axisDate = (d, withYear) => noYear(d.toLocaleDateString(LOCALE, { month: 'short', year: withYear, timeZone: 'UTC' }));
+
 // ---------- formatting ----------
-const money = (v, dp = 0) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
-const signed = (v) => { v = Math.round(v); if (hidden) return sign(v) + '$' + MASK; return (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US'); };
-const compact = (v) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(v));
+const money = (v, dp = 0) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString(LOCALE, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const signed = (v) => { v = Math.round(v); if (hidden) return sign(v) + '$' + MASK; return (v > 0 ? '+' : v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString(LOCALE); };
+const compact = (v) => hidden ? (v < 0 ? '−' : '') + '$' + MASK : (v < 0 ? '−' : '') + '$' + Intl.NumberFormat(LOCALE, { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(v));
 const signedCompact = (v) => (v > 0 ? '+' : '') + compact(v);
-const pct = (v, dp = 1) => (v == null ? '—' : (v * 100).toFixed(dp) + '%');
-const signedPct = (v, dp = 1) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v * 100).toFixed(dp) + '%');
-const num = (v, dp = 3) => hidden ? MASK : v.toLocaleString('en-US', { maximumFractionDigits: dp });
-const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-const fmtMonth = (ym, short) => new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: short ? 'short' : 'long', year: short ? '2-digit' : 'numeric', timeZone: 'UTC' });
+const pct = (v, dp = 1) => (v == null ? '—' : point((v * 100).toFixed(dp)) + '%');
+const signedPct = (v, dp = 1) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + point(Math.abs(v * 100).toFixed(dp)) + '%');
+const num = (v, dp = 3) => hidden ? MASK : v.toLocaleString(LOCALE, { maximumFractionDigits: dp });
+const count = (v) => v.toLocaleString(LOCALE);                           // a count, never hidden
+const fmtDate = (iso) => noYear(new Date(iso + 'T00:00:00Z').toLocaleDateString(LOCALE, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }));
+const fmtMonth = (ym, short) => {
+  const s = noYear(new Date(ym + '-01T00:00:00Z').toLocaleDateString(LOCALE, { month: short ? 'short' : 'long', year: short ? '2-digit' : 'numeric', timeZone: 'UTC' }));
+  return short ? s : s[0].toUpperCase() + s.slice(1);                    // "ноябрь 2026" → "Ноябрь 2026"
+};
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const cls = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
 const clsUsd = (v) => cls(Math.round(v)); // dollars: no color for amounts that round to $0
@@ -675,8 +1262,31 @@ const clsUsd = (v) => cls(Math.round(v)); // dollars: no color for amounts that 
 // loads, and stays if there's no logo (or in a saved report opened offline).
 const logo = (t, size = 20) =>
   `<span class="logo" data-l="${esc(String(t)[0] || '')}" style="--s:${size}px" aria-hidden="true"><img src="api/logo?symbol=${encodeURIComponent(t)}" alt="" loading="lazy" decoding="async"></span>`;
+// Some logos are white artwork on a transparent background, made for dark backgrounds;
+// on the usual white tile they'd vanish. True when most of the drawn pixels are near-white
+// and a fair part of the image is see-through (an opaque logo keeps its own background).
+function lightLogo(img) {
+  try {
+    const n = 32, c = document.createElement('canvas');
+    c.width = c.height = n;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, n, n);
+    const px = g.getImageData(0, 0, n, n).data;
+    let clear = 0, drawn = 0, white = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i + 3] < 40) { clear++; continue; }
+      drawn++;
+      if (px[i] > 225 && px[i + 1] > 225 && px[i + 2] > 225) white++;
+    }
+    return drawn > 0 && clear / (n * n) > 0.15 && white / drawn > 0.5;
+  } catch { return false; }
+}
 if (typeof document !== 'undefined') {
-  document.addEventListener('load', (e) => { if (e.target.matches?.('.logo img')) e.target.classList.add('ok'); }, true);
+  document.addEventListener('load', (e) => {
+    if (!e.target.matches?.('.logo img')) return;
+    if (lightLogo(e.target)) e.target.classList.add('on-dark');
+    e.target.classList.add('ok');
+  }, true);
   document.addEventListener('error', (e) => { if (e.target.matches?.('.logo img')) e.target.remove(); }, true);
 }
 
@@ -694,8 +1304,8 @@ const api = {
   hidden, DAY_MS, anniversary, addDays, daysBetween, nyStamp, nyDay, sellOrder,
   lossSale, harvest, realizedByYear,
   DEFAULT_TAX, taxRates, estimateTax,
-  money, signed, compact, signedCompact, pct, signedPct, num, fmtDate, fmtMonth, esc, cls, clsUsd,
-  niceStep, svgEl, logo,
+  money, signed, compact, signedCompact, pct, signedPct, num, count, fmtDate, fmtMonth, axisDate, esc, cls, clsUsd,
+  niceStep, svgEl, logo, lightLogo, t, plural, LOCALE,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else window.Shared = api;
@@ -703,10 +1313,14 @@ else window.Shared = api;
 /* SHARED:END */
 (() => {
 const S = window.Shared;
+// text in the chosen language (i18n.js); `tr`, because `t` is a ticker everywhere below
+const tr = S.t, plural = S.plural;
+const stocksN = (n) => `${n} ${plural(n, 'stock', 'stocks', 'акция', 'акции', 'акций')}`;
+const purchasesN = (n) => `${n} ${plural(n, 'purchase', 'purchases', 'покупка', 'покупки', 'покупок')}`;
 // Say what went wrong instead of leaving the page half-drawn.
 function showProblem(err) {
   const box = document.getElementById('problem');
-  box.innerHTML = `<b class="neg">This page couldn't be drawn:</b> ${S.esc(String(err?.message || err))}. Try <b>Refresh prices</b>, or upload your file again.`;
+  box.innerHTML = `<b class="neg">${tr('This page couldn\'t be drawn:')}</b> ${S.esc(String(err?.message || err))}. ` + tr('Try <b>Refresh prices</b>, or upload your file again.');
   box.hidden = false;
 }
 addEventListener('error', (e) => showProblem(e.error || e.message));
@@ -721,23 +1335,40 @@ const yearAgo = ms(addDays(asof, -365));
 
 // ---- notes about the data ----
 const M = D.meta || {};
+// The export's notes are kept in English ("AAPL Aug 2020", "AAPL: sold 2 more shares than
+// bought on 2024-01-05"); they're shown in the page's language.
+const MONTHS = 'JanFebMarAprMayJunJulAugSepOctNovDec';
+const splitName = (s) => {
+  const m = /^(.+) ([A-Z][a-z]{2}) (\d{4})$/.exec(s), i = m ? MONTHS.indexOf(m[2]) : -1;
+  return i >= 0 && i % 3 === 0 ? `${m[1]} ${S.axisDate(new Date(Date.UTC(+m[3], i / 3, 1)), 'numeric')}` : s;
+};
+const warnName = (w) => {
+  const m = /^(.+): sold ([\d.]+) more shares than bought on (\d{4}-\d{2}-\d{2})$/.exec(w);
+  return m ? tr('{ticker}: sold {n} more shares than bought on {date}', { ticker: m[1], n: m[2], date: fmtDate(m[3]) }) : w;
+};
 $('n-source').textContent =
-  `Purchases come from your Quicken export. Every buy and sell was replayed` +
-  (M.splits?.length ? `, including ${M.splits.length === 1 ? 'a split' : M.splits.length + ' splits'} (${M.splits.join(', ')})` : '') + '. ' +
-  (M.mismatches?.length ? `These stocks don't match the share count in the export: ${M.mismatches.join(', ')}.` : 'The result matches the share count in the export for every stock.');
+  tr('Purchases come from your Quicken export. Every buy and sell was replayed') +
+  (M.splits?.length ? tr(', including {splits} ({list})', {
+    splits: M.splits.length === 1 ? tr('a split') : `${M.splits.length} ${plural(M.splits.length, 'split', 'splits', 'сплит', 'сплита', 'сплитов')}`,
+    list: M.splits.map(splitName).join(', '),
+  }) : '') + '. ' +
+  (M.mismatches?.length ? tr('These stocks don\'t match the share count in the export: {list}.', { list: M.mismatches.join(', ') }) : tr('The result matches the share count in the export for every stock.'));
 const unpriced = Object.keys(D.stocks).filter((t) => D.stocks[t].noPrice);
-if (unpriced.length) $('n-source').textContent += ` No price could be found for ${unpriced.join(', ')}, so ${unpriced.length === 1 ? "it's" : "they're"} valued at what you last paid.`;
+if (unpriced.length) {
+  $('n-source').textContent += ' ' + tr(unpriced.length === 1 ? 'No price could be found for {list}, so it\'s valued at what you last paid.' : 'No price could be found for {list}, so they\'re valued at what you last paid.', { list: unpriced.join(', ') });
+}
 if (M.warnings?.length) {
   $('n-warn').hidden = false;
-  $('n-warn').innerHTML = `<b>Check these against your broker:</b> ${M.warnings.map(esc).join('; ')}. Shares may have come from a transfer the export doesn't show.`;
+  $('n-warn').innerHTML = `<b>${tr('Check these against your broker:')}</b> ${M.warnings.map((w) => esc(warnName(w))).join('; ')}. ` + tr('Shares may have come from a transfer the export doesn\'t show.');
 }
-$('n-method').textContent = "The export doesn't say which purchase each past sale came from, so oldest-first is assumed (the IRS default).";
+$('n-method').textContent = tr('The export doesn\'t say which purchase each past sale came from, so oldest-first is assumed (the IRS default).');
 const wash = D.washSales || [];
 const washTotal = wash.reduce((s, w) => s + w.disallowed, 0);
 $('n-wash').innerHTML = wash.length
-  ? `<b>Wash sales:</b> ${wash.length} ${wash.length === 1 ? 'sale' : 'sales'} at a loss had the same stock bought within 30 days, so ${money(washTotal)} of losses ` +
-    `couldn't be claimed then. That amount was added to the cost of the replacement shares, and their holding period starts earlier. Those purchases are marked <b>Wash sale</b>.`
-  : '<b>Wash sales:</b> none found. A sale at a loss with the same stock bought within 30 days before or after would have its loss moved into the new shares’ cost.';
+  ? tr('<b>Wash sales:</b> {sales} at a loss had the same stock bought within 30 days, so {amount} of losses couldn\'t be claimed then. That amount was added to the cost of the replacement shares, and their holding period starts earlier. Those purchases are marked <b>Wash sale</b>.', {
+    sales: `${wash.length} ${plural(wash.length, 'sale', 'sales', 'продажа', 'продажи', 'продаж')}`, amount: money(washTotal),
+  })
+  : tr('<b>Wash sales:</b> none found. A sale at a loss with the same stock bought within 30 days before or after would have its loss moved into the new shares’ cost.');
 
 // ---- your tax rates (kept in this browser) ----
 const TAX_KEY = 'tlv-tax';
@@ -781,7 +1412,7 @@ const stocks = Object.entries(D.stocks).map(([t, s]) => {
 });
 const order = { go: 0, near: 1, low: 2, loss: 3, wait: 4, none: 5 };
 stocks.sort((a, b) => order[a.verdict] - order[b.verdict] || b.toAth - a.toAth);
-const label = { go: 'Sell candidate', near: 'Near high', low: 'Below high', loss: 'At a loss', wait: 'Not yet', none: 'No price' };
+const label = { go: tr('Sell candidate'), near: tr('Near high'), low: tr('Below high'), loss: tr('At a loss'), wait: tr('Not yet'), none: tr('No price') };
 const best = stocks.filter((s) => s.verdict === 'go' || s.verdict === 'near');
 const soonLots = stocks.flatMap((s) => s.lots.filter((l) => !l.L && l.lt <= addDays(asof, 90)).map((l) => ({ ...l, t: s.t })));
 const in30 = soonLots.filter((l) => l.lt <= addDays(asof, 30));
@@ -792,21 +1423,22 @@ const trades = (D.trades || D.activity || []).filter((a) => (a.type === 'BUY' ||
   .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
 const savedByWaiting = (gain) => Math.max(0, gain) * (rates.short - rates.long);
 
-$('asof').textContent = `Prices as of ${fmtDate(asof)}, ${D.asof.slice(11)} New York time · ${stocks.length} stocks · ${stocks.reduce((n, s) => n + s.lots.length, 0)} purchases`;
+$('asof').textContent = tr('Prices as of {date}, {time} New York time', { date: fmtDate(asof), time: D.asof.slice(11) }) +
+  ` · ${stocksN(stocks.length)} · ${purchasesN(stocks.reduce((n, s) => n + s.lots.length, 0))}`;
 
 // ---- best to sell now ----
 function drawBest() {
   $('best-note').textContent = best.length
-    ? 'Long-term shares at a gain, trading within 20% of their all-time high, closest first. Sell up to the amount shown and all of the profit is long-term.'
-    : 'None of your long-term shares at a gain are near their all-time high right now.';
+    ? tr('Long-term shares at a gain, trading within 20% of their all-time high, closest first. Sell up to the amount shown and all of the profit is long-term.')
+    : tr('None of your long-term shares at a gain are near their all-time high right now.');
   $('best').innerHTML = best.map((s, i) => `
     <button class="best-card" type="button" data-t="${esc(s.t)}">
       <span class="top"><span class="rank">${i + 1}</span><span class="tkr">${S.logo(s.t, 24)}${esc(s.t)}</span><span class="nm">${esc(s.name)}</span><span class="pill p-${s.verdict}">${label[s.verdict]}</span></span>
       <dl>
-        <div><dt>Price vs all-time high</dt><dd>${pct(s.toAth)}</dd></div>
-        <div><dt>Sell up to (long-term)</dt><dd>${money(Math.floor(s.ltVal))}</dd></div>
-        <div><dt>Long-term profit</dt><dd class="${clsUsd(s.ltGain)}">${signed(s.ltGain)}</dd></div>
-        <div><dt>Estimated tax</dt><dd>${money(taxOf(s.ltGain, 0))}</dd></div>
+        <div><dt>${tr('Price vs all-time high')}</dt><dd>${pct(s.toAth)}</dd></div>
+        <div><dt>${tr('Sell up to (long-term)')}</dt><dd>${money(Math.floor(s.ltVal))}</dd></div>
+        <div><dt>${tr('Long-term profit')}</dt><dd class="${clsUsd(s.ltGain)}">${signed(s.ltGain)}</dd></div>
+        <div><dt>${tr('Estimated tax')}</dt><dd>${money(taxOf(s.ltGain, 0))}</dd></div>
       </dl>
     </button>`).join('');
 }
@@ -816,19 +1448,19 @@ $('best').addEventListener('click', (e) => { const b = e.target.closest('[data-t
 function drawTiles() {
   const ltv = tot('ltVal'), stv = tot('stVal'), ltg = tot('ltGain'), stg = tot('stGain');
   $('t-ltv').textContent = big(ltv);
-  $('t-ltv-s').textContent = `${pct(ltv / (ltv + stv || 1))} of your stocks`;
+  $('t-ltv-s').textContent = tr('{pct} of your stocks', { pct: pct(ltv / (ltv + stv || 1)) });
   $('t-ltg').textContent = Math.abs(ltg) < 10000 ? signed(ltg) : signedCompact(ltg);
   $('t-ltg').className = 'v ' + clsUsd(ltg);
-  $('t-ltg-s').textContent = `At your long-term rate of ${pct(rates.long)}`;
+  $('t-ltg-s').textContent = tr('At your long-term rate of {pct}', { pct: pct(rates.long) });
   $('t-tax').textContent = big(taxOf(ltg, 0));
-  $('t-tax-s').textContent = 'If you sold every long-term share today';
+  $('t-tax-s').textContent = tr('If you sold every long-term share today');
   $('t-stv').textContent = big(stv);
-  $('t-stv-s').textContent = `Profit ${signed(stg)}, taxed at ${pct(rates.short)} if sold now`;
+  $('t-stv-s').textContent = tr('Profit {gain}, taxed at {pct} if sold now', { gain: signed(stg), pct: pct(rates.short) });
   const v30 = in30.reduce((x, l) => x + l.val, 0), save30 = in30.reduce((x, l) => x + savedByWaiting(l.gain), 0);
   $('t-soon').textContent = big(v30);
   $('t-soon-s').textContent = in30.length
-    ? `${[...new Set(in30.map((l) => l.t))].join(', ')} · waiting saves about ${money(save30)}`
-    : 'Nothing';
+    ? `${[...new Set(in30.map((l) => l.t))].join(', ')} · ` + tr('waiting saves about {amount}', { amount: money(save30) })
+    : tr('Nothing');
 }
 
 // ---- ranked table ----
@@ -839,13 +1471,13 @@ function drawRank() {
     <tr class="pick${s.t === current ? ' sel' : ''}" tabindex="0" data-t="${esc(s.t)}">
       <td class="l"><span class="stock">${S.logo(s.t, 26)}<span><span class="tkr">${esc(s.t)}</span><span class="nm" title="${esc(s.name)}">${esc(s.name)}</span></span></span></td>
       <td class="l"><span class="pill p-${s.verdict}">${label[s.verdict]}</span></td>
-      <td class="l">${s.noPrice ? '<span class="note">No price found</span>' : `<span class="gauge" tabindex="0" data-t="${esc(s.t)}" aria-label="${esc(s.t)} is at ${pct(s.toAth)} of its all-time high: ${money(s.price, 2)} now, ${money(s.ath, 2)} at its high."><span class="meter ${s.verdict === 'go' || s.verdict === 'near' ? 'hot' : ''}"><i style="width:${Math.max(1, s.toAth * 100)}%"></i><b style="left:${NEAR * 100}%"></b><b style="left:${CLOSE * 100}%"></b></span>${pct(s.toAth)}</span>`}</td>
-      <td class="l mid-only"><span class="split"><i style="width:${(s.ltSh / s.shares) * 100}%"></i><u></u></span>${num(s.ltSh, 1)} of ${num(s.shares, 1)}</td>
+      <td class="l">${s.noPrice ? `<span class="note">${tr('No price found')}</span>` : `<span class="gauge" tabindex="0" data-t="${esc(s.t)}" aria-label="${esc(tr('{ticker} is at {pct} of its all-time high: {price} now, {ath} at its high.', { ticker: s.t, pct: pct(s.toAth), price: money(s.price, 2), ath: money(s.ath, 2) }))}"><span class="meter ${s.verdict === 'go' || s.verdict === 'near' ? 'hot' : ''}"><i style="width:${Math.max(1, s.toAth * 100)}%"></i><b style="left:${NEAR * 100}%"></b><b style="left:${CLOSE * 100}%"></b></span>${pct(s.toAth)}</span>`}</td>
+      <td class="l mid-only"><span class="split"><i style="width:${(s.ltSh / s.shares) * 100}%"></i><u></u></span>${tr('{a} of {b}', { a: num(s.ltSh, 1), b: num(s.shares, 1) })}</td>
       <td>${s.ltSh ? money(Math.floor(s.ltVal)) : '—'}</td>
       <td class="${clsUsd(s.ltGain)}">${s.ltSh ? signed(s.ltGain) : '—'}</td>
       <td>${s.ltSh && s.ltGain > 0.5 ? money(taxOf(s.ltGain, 0)) : '—'}</td>
       <td class="mid-only ${clsUsd(s.stGain)}">${s.shares - s.ltSh > 1e-6 ? signed(s.stGain) : '—'}</td>
-      <td class="mid-only">${s.next ? fmtDate(s.next) : 'All long-term'}</td>
+      <td class="mid-only">${s.next ? fmtDate(s.next) : tr('All long-term')}</td>
     </tr>`).join('');
 }
 rankBody.addEventListener('click', (e) => { if (e.target.closest('.gauge')) return; const tr = e.target.closest('tr[data-t]'); if (tr) select(tr.dataset.t, true); });
@@ -868,9 +1500,9 @@ function gaugeTip(g) {
   const s = stocks.find((x) => x.t === g.dataset.t);
   if (!s) return;
   const r = g.getBoundingClientRect();
-  showTip(`<div class="h">${esc(s.t)} · ${pct(s.toAth)} of its all-time high</div>
-    <div class="r"><span>Price now</span><b>${money(s.price, 2)}</b></div>
-    <div class="r"><span>All-time high (${esc(s.athDate)})</span><b>${money(s.ath, 2)}</b></div>`, r.left, r.bottom + 70);
+  showTip(`<div class="h">${esc(s.t)} · ${tr('{pct} of its all-time high', { pct: pct(s.toAth) })}</div>
+    <div class="r"><span>${tr('Price now')}</span><b>${money(s.price, 2)}</b></div>
+    <div class="r"><span>${tr('All-time high ({date})', { date: esc(s.athDate) })}</span><b>${money(s.ath, 2)}</b></div>`, r.left, r.bottom + 70);
 }
 document.addEventListener('pointerover', (e) => { const g = e.target.closest?.('.gauge'); if (g) gaugeTip(g); });
 document.addEventListener('pointerout', (e) => { if (e.target.closest?.('.gauge') && !e.relatedTarget?.closest?.('.gauge')) hideTip(); });
@@ -880,7 +1512,7 @@ addEventListener('scroll', hideTip, { passive: true });
 
 // ---- stock picker ----
 const chips = $('chips');
-chips.innerHTML = '<button type="button" data-t="ALL" aria-pressed="false">All stocks</button>' +
+chips.innerHTML = `<button type="button" data-t="ALL" aria-pressed="false">${tr('All stocks')}</button>` +
   stocks.map((s) => `<button type="button" class="${s.ltSh ? '' : 'dim'}" data-t="${esc(s.t)}" aria-pressed="false">${esc(s.t)}</button>`).join('');
 chips.addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) select(b.dataset.t); });
 
@@ -895,13 +1527,13 @@ const groupBox = $('group');
 try { groupBox.checked = localStorage.getItem('tlv-group') === '1'; } catch {}
 groupBox.addEventListener('change', () => { try { localStorage.setItem('tlv-group', groupBox.checked ? '1' : '0'); } catch {} drawLots(); });
 function lotRow(l, all, inGroup = false) {
-  const washNote = l.wash ? `Cost includes ${money(l.wash.add, 2)} a share of loss that couldn't be claimed on a sale on ${fmtDate(l.wash.from)}; its holding period starts earlier.` : '';
+  const washNote = l.wash ? tr('Cost includes {amount} a share of loss that couldn\'t be claimed on a sale on {date}; its holding period starts earlier.', { amount: money(l.wash.add, 2), date: fmtDate(l.wash.from) }) : '';
   return `<tr${inGroup ? ' class="in"' : ''}>
     ${all ? `<td class="l tkr">${S.logo(l.t, 18)}${esc(l.t)}</td>` : ''}<td class="l">${fmtDate(l.d)}</td><td>${num(l.sh, 4)}</td>
     <td${l.wash ? ` title="${esc(washNote)}"` : ''}>${money(l.c, 2)}</td><td class="mid-only">${money(l.basis, 2)}</td><td>${money(l.val, 2)}</td>
-    <td class="${clsUsd(l.gain)}">${signed(l.gain)}</td><td class="mid-only ${cls(l.gp)}">${(l.gp * 100).toFixed(1)}%</td>
+    <td class="${clsUsd(l.gain)}">${signed(l.gain)}</td><td class="mid-only ${cls(l.gp)}">${pct(l.gp)}</td>
     <td>${fmtDate(l.lt)}</td>
-    <td class="l"><span class="pill ${l.L ? 'p-go' : 'p-st'}">${l.L ? 'Long-term' : 'Short-term'}</span>${l.wash ? ` <span class="pill p-wash" title="${esc(washNote)}">Wash sale</span>` : ''}</td>
+    <td class="l"><span class="pill ${l.L ? 'p-go' : 'p-st'}">${l.L ? tr('Long-term') : tr('Short-term')}</span>${l.wash ? ` <span class="pill p-wash" title="${esc(washNote)}">${tr('Wash sale')}</span>` : ''}</td>
   </tr>`;
 }
 // Grouped, each stock is one subtotal line; click it to show its purchases. Which stocks
@@ -929,17 +1561,17 @@ function groupRow(s) {
   const basis = s.lots.reduce((x, l) => x + l.basis, 0), val = s.ltVal + s.stVal, gain = val - basis;
   const open = openGroups.has(s.t);
   return `<tr class="grp" data-t="${esc(s.t)}">
-    <td class="l tkr"><button class="grp-tog" type="button" data-t="${esc(s.t)}" aria-expanded="${open}" aria-label="${open ? 'Hide' : 'Show'} ${esc(s.t)} purchases">${S.logo(s.t, 18)}${esc(s.t)}</button></td><td class="l">${s.lots.length} ${s.lots.length === 1 ? 'purchase' : 'purchases'}</td><td>${num(s.shares, 4)}</td>
+    <td class="l tkr"><button class="grp-tog" type="button" data-t="${esc(s.t)}" aria-expanded="${open}" aria-label="${esc(tr(open ? 'Hide {ticker} purchases' : 'Show {ticker} purchases', { ticker: s.t }))}">${S.logo(s.t, 18)}${esc(s.t)}</button></td><td class="l">${purchasesN(s.lots.length)}</td><td>${num(s.shares, 4)}</td>
     <td>${money(basis / s.shares, 2)}</td><td class="mid-only">${money(basis, 2)}</td><td>${money(val, 2)}</td>
-    <td class="${clsUsd(gain)}">${signed(gain)}</td><td class="mid-only ${cls(gain)}">${((gain / basis) * 100).toFixed(1)}%</td>
-    <td>${s.next ? fmtDate(s.next) : ''}</td><td class="l">${num(s.ltSh, 2)} of ${num(s.shares, 2)} long-term</td>
+    <td class="${clsUsd(gain)}">${signed(gain)}</td><td class="mid-only ${cls(gain)}">${pct(gain / basis)}</td>
+    <td>${s.next ? fmtDate(s.next) : ''}</td><td class="l">${tr('{a} of {b} long-term', { a: num(s.ltSh, 2), b: num(s.shares, 2) })}</td>
   </tr>`;
 }
 function drawLots() {
   const all = current === 'ALL';
   $('th-t').hidden = !all; $('group-wrap').hidden = !all;
   $('group-all').hidden = !all || !groupBox.checked;
-  $('group-all').textContent = stocks.every((s) => openGroups.has(s.t)) ? 'Collapse all' : 'Expand all';
+  $('group-all').textContent = stocks.every((s) => openGroups.has(s.t)) ? tr('Collapse all') : tr('Expand all');
   document.querySelectorAll('#lot-table th').forEach((th) => th.setAttribute('aria-sort', th.dataset.k === sortK ? (sortDir > 0 ? 'ascending' : 'descending') : 'none'));
   const cmp = (a, b) => ((a[sortK] > b[sortK] ? 1 : a[sortK] < b[sortK] ? -1 : 0) * sortDir) || (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
   const body = document.querySelector('#lot-table tbody');
@@ -962,25 +1594,25 @@ function select(t, scroll) {
   if (all) {
     const lots = stocks.flatMap((s) => s.lots), sum = (k) => lots.reduce((x, l) => x + l[k], 0);
     const ltv = tot('ltVal'), stv = tot('stVal');
-    $('d-title').textContent = 'All your purchases';
+    $('d-title').textContent = tr('All your purchases');
     $('d-facts').innerHTML = [
-      ['Value now', money(ltv + stv)], ['Cost basis', money(sum('basis'))], ['Gain', `<b class="${clsUsd(sum('gain'))}">${signed(sum('gain'))}</b>`],
-      ['Long-term', `${money(ltv)} · ${signed(tot('ltGain'))}`], ['Short-term', `${money(stv)} · ${signed(tot('stGain'))}`],
-      ['Buys and sales', `${trades.filter((a) => a.type === 'BUY').length} · ${trades.filter((a) => a.type === 'SELL').length}`],
+      [tr('Value now'), money(ltv + stv)], [tr('Cost basis'), money(sum('basis'))], [tr('Gain'), `<b class="${clsUsd(sum('gain'))}">${signed(sum('gain'))}</b>`],
+      [tr('Long-term'), `${money(ltv)} · ${signed(tot('ltGain'))}`], [tr('Short-term'), `${money(stv)} · ${signed(tot('stGain'))}`],
+      [tr('Buys and sales'), `${trades.filter((a) => a.type === 'BUY').length} · ${trades.filter((a) => a.type === 'SELL').length}`],
     ].map(([k, v]) => `<div><span>${k}</span> ${v}</div>`).join('');
-    $('d-hint').textContent = `All ${lots.length} purchases you still own, oldest first. Long-term rows can be sold at the lower rate.`;
+    $('d-hint').textContent = tr('All {purchases} you still own, oldest first. Long-term rows can be sold at the lower rate.', { purchases: purchasesN(lots.length) });
   } else {
     const s = stocks.find((x) => x.t === t);
-    $('d-title').textContent = `Every ${s.t} buy`;
+    $('d-title').textContent = tr('Every {ticker} buy', { ticker: s.t });
     const avg = s.lots.reduce((x, l) => x + l.basis, 0) / s.shares;
     $('d-facts').innerHTML = [
-      ['Price', money(s.price, 2)], ['All-time high', `${money(s.ath, 2)} (${esc(s.athDate)})`], ['Price vs high', pct(s.toAth)],
-      ['Avg cost / share', money(avg, 2)], ['Long-term', `${num(s.ltSh, 2)} sh · ${money(s.ltVal)} · ${signed(s.ltGain)}`],
-      ['Short-term', `${num(s.shares - s.ltSh, 2)} sh · ${money(s.stVal)} · ${signed(s.stGain)}`],
+      [tr('Price'), money(s.price, 2)], [tr('All-time high'), `${money(s.ath, 2)} (${esc(s.athDate)})`], [tr('Price vs high'), pct(s.toAth)],
+      [tr('Avg cost / share'), money(avg, 2)], [tr('Long-term'), `${num(s.ltSh, 2)} ${tr('sh')} · ${money(s.ltVal)} · ${signed(s.ltGain)}`],
+      [tr('Short-term'), `${num(s.shares - s.ltSh, 2)} ${tr('sh')} · ${money(s.stVal)} · ${signed(s.stGain)}`],
     ].map(([k, v]) => `<div><span>${k}</span> ${v}</div>`).join('');
     $('d-hint').textContent = s.ltSh
-      ? `Every purchase of ${s.t}, with what you paid. Long-term rows can be sold at the lower rate.`
-      : `${s.t} has no long-term shares yet. The first ones qualify on ${fmtDate(s.next)}.`;
+      ? tr('Every purchase of {ticker}, with what you paid. Long-term rows can be sold at the lower rate.', { ticker: s.t })
+      : tr('{ticker} has no long-term shares yet. The first ones qualify on {date}.', { ticker: s.t, date: fmtDate(s.next) });
     setCalc(s, Math.floor(s.ltVal));
   }
   drawLots(); drawChart();
@@ -1011,10 +1643,10 @@ calcBox.addEventListener('toggle', () => { try { localStorage.setItem('tlv-calc-
 function setCalc(s, dollars) {
   const safe = Math.floor(s.ltVal), all = Math.floor(s.ltVal + s.stVal);
   const safeBtn = $('calc-safe'), allBtn = $('calc-all');
-  safeBtn.textContent = s.ltSh ? `All long-term: ${money(safe)}` : 'No long-term shares yet';
+  safeBtn.textContent = s.ltSh ? tr('All long-term: {amount}', { amount: money(safe) }) : tr('No long-term shares yet');
   safeBtn.disabled = !s.ltSh;
   safeBtn.onclick = () => { calcAmt.value = safe; drawCalc(); };
-  allBtn.textContent = `Everything: ${money(all)}`;
+  allBtn.textContent = tr('Everything: {amount}', { amount: money(all) });
   allBtn.onclick = () => { calcAmt.value = all; drawCalc(); };
   calcAmt.max = all;
   calcAmt.value = dollars;
@@ -1027,13 +1659,13 @@ function drawCalc() {
   const a = simulate(s, dollars, 'FIFO'), b = simulate(s, dollars, 'TAXOPT');
   const row = (name, f) => `<tr><td class="l">${name}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`;
   document.querySelector('#calc-table tbody').innerHTML = [
-    row('Shares sold', (r) => num(r.sh, 3)),
-    row('From long-term shares', (r) => num(r.ltSh, 3)),
-    row('From short-term shares', (r) => num(r.stSh, 3)),
-    row('<b>Long-term profit</b> (lower rate)', (r) => `<b class="${clsUsd(r.ltGain)}">${signed(r.ltGain)}</b>`),
-    row('<b>Short-term profit</b> (income rate)', (r) => `<b class="${clsUsd(r.stGain)}">${signed(r.stGain)}</b>`),
-    ...(a.loss.washLoss >= 0.5 || b.loss.washLoss >= 0.5 ? [row('Loss blocked as a wash sale', (r) => (r.loss.washLoss >= 0.5 ? money(r.loss.washLoss) : '—'))] : []),
-    row('<b>Estimated tax</b> at your rates', (r) => `<b>${money(r.tax)}</b>`),
+    row(tr('Shares sold'), (r) => num(r.sh, 3)),
+    row(tr('From long-term shares'), (r) => num(r.ltSh, 3)),
+    row(tr('From short-term shares'), (r) => num(r.stSh, 3)),
+    row(tr('<b>Long-term profit</b> (lower rate)'), (r) => `<b class="${clsUsd(r.ltGain)}">${signed(r.ltGain)}</b>`),
+    row(tr('<b>Short-term profit</b> (income rate)'), (r) => `<b class="${clsUsd(r.stGain)}">${signed(r.stGain)}</b>`),
+    ...(a.loss.washLoss >= 0.5 || b.loss.washLoss >= 0.5 ? [row(tr('Loss blocked as a wash sale'), (r) => (r.loss.washLoss >= 0.5 ? money(r.loss.washLoss) : '—'))] : []),
+    row(tr('<b>Estimated tax</b> at your rates'), (r) => `<b>${money(r.tax)}</b>`),
   ].join('');
   // wash sale check, for whichever order loses more to it
   const w = $('calc-wash');
@@ -1041,23 +1673,25 @@ function drawCalc() {
   const anyLoss = Math.max(a.loss.stLoss + a.loss.ltLoss, b.loss.stLoss + b.loss.ltLoss);
   if (dollars && worst.washLoss >= 0.5) {
     w.hidden = false; w.className = 'verdict warn';
-    w.textContent = `Wash sale: this sale includes shares sold at a loss, and you bought ${s.t} on ${fmtDate(worst.lastBuy)}, within 30 days. ` +
-      `About ${money(worst.washLoss)} of the loss couldn't be claimed now; it would be added to the newer shares' cost instead. ` +
-      `To claim all of it, sell on or after ${fmtDate(worst.clearOn)}.`;
+    w.textContent = tr('Wash sale: this sale includes shares sold at a loss, and you bought {ticker} on {bought}, within 30 days. About {amount} of the loss couldn\'t be claimed now; it would be added to the newer shares\' cost instead. To claim all of it, sell on or after {clear}.',
+      { ticker: s.t, bought: fmtDate(worst.lastBuy), amount: money(worst.washLoss), clear: fmtDate(worst.clearOn) });
   } else if (dollars && anyLoss >= 0.5) {
     w.hidden = false; w.className = 'verdict';
-    w.textContent = `This sale includes up to ${money(anyLoss)} of losses. To keep them, don't buy ${s.t} again before ${fmtDate(addDays(asof, 31))}: a purchase within 30 days after the sale blocks the loss.`;
+    w.textContent = tr('This sale includes up to {amount} of losses. To keep them, don\'t buy {ticker} again before {date}: a purchase within 30 days after the sale blocks the loss.',
+      { amount: money(anyLoss), ticker: s.t, date: fmtDate(addDays(asof, 31)) });
   } else w.hidden = true;
   const v = $('calc-verdict');
   const worstSt = Math.max(Math.round(a.stGain), Math.round(b.stGain));
   if (!dollars) { v.className = 'verdict'; v.textContent = ''; return; }
   if (worstSt <= 0) {
     v.className = 'verdict ok';
-    v.textContent = `Selling ${money(dollars)} of ${s.t} creates no short-term profit either way, so all of the profit is taxed at the long-term rate: about ${money(Math.max(a.tax, b.tax))} in tax.`;
+    v.textContent = tr('Selling {amount} of {ticker} creates no short-term profit either way, so all of the profit is taxed at the long-term rate: about {tax} in tax.',
+      { amount: money(dollars), ticker: s.t, tax: money(Math.max(a.tax, b.tax)) });
   } else {
     v.className = 'verdict warn';
-    v.textContent = `Selling ${money(dollars)} of ${s.t} could create up to ${money(worstSt)} of short-term profit, taxed at your income rate (about ${money(Math.max(a.tax, b.tax))} in tax). ` +
-      (s.ltSh ? `Sell ${money(Math.floor(s.ltVal))} or less to keep it all long-term.` : `${s.t} has no long-term shares until ${fmtDate(s.next)}.`);
+    v.textContent = tr('Selling {amount} of {ticker} could create up to {profit} of short-term profit, taxed at your income rate (about {tax} in tax).',
+      { amount: money(dollars), ticker: s.t, profit: money(worstSt), tax: money(Math.max(a.tax, b.tax)) }) + ' ' +
+      (s.ltSh ? tr('Sell {amount} or less to keep it all long-term.', { amount: money(Math.floor(s.ltVal)) }) : tr('{ticker} has no long-term shares until {date}.', { ticker: s.t, date: fmtDate(s.next) }));
   }
 }
 calcAmt.addEventListener('input', () => { drawCalc(); remember(calcAmt.value); });
@@ -1082,7 +1716,7 @@ function drawChart() {
   const pad = (hi - lo) * 0.08; lo = Math.max(0, lo - pad); hi += pad;
   const X = (t) => m.l + ((t - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);
   const Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
-  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${s.t} purchase prices and weekly closes` });
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': tr('{ticker} purchase prices and weekly closes', { ticker: s.t }) });
   chartEl.appendChild(svg);
 
   const step = niceStep((hi - lo) / 5);
@@ -1094,21 +1728,21 @@ function drawChart() {
   const every = W < 560 ? 6 : 3;
   for (; d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + every)) {
     el('line', { x1: X(d.getTime()), x2: X(d.getTime()), y1: H - m.b, y2: H - m.b + 4, stroke: 'var(--line)' }, svg);
-    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = S.axisDate(d, '2-digit');
   }
   el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: 'var(--line)' }, svg);
 
   if (yearAgo > x0) {                           // labels sit at the bottom, clear of the all-time high line
     el('rect', { x: m.l, y: m.t, width: X(yearAgo) - m.l, height: H - m.t - m.b, fill: 'var(--lt-soft)', opacity: 0.45 }, svg);
     el('line', { x1: X(yearAgo), x2: X(yearAgo), y1: m.t, y2: H - m.b, stroke: 'var(--fg)', 'stroke-opacity': 0.45, 'stroke-width': 1.5 }, svg);
-    el('text', { x: X(yearAgo) - 6, y: H - m.b - 8, 'text-anchor': 'end', style: 'fill:var(--lt);font-weight:600' }, svg).textContent = '← long-term';
-    el('text', { x: X(yearAgo) + 6, y: H - m.b - 8, 'text-anchor': 'start' }, svg).textContent = 'short-term →';
+    el('text', { x: X(yearAgo) - 6, y: H - m.b - 8, 'text-anchor': 'end', style: 'fill:var(--lt);font-weight:600' }, svg).textContent = tr('← long-term');
+    el('text', { x: X(yearAgo) + 6, y: H - m.b - 8, 'text-anchor': 'start' }, svg).textContent = tr('short-term →');
   }
   if (athOn) {
     el('line', { x1: m.l, x2: W - m.r, y1: Y(s.ath), y2: Y(s.ath), stroke: 'var(--ath)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }, svg);
-    el('text', { x: W - m.r, y: Y(s.ath) - 6, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = `All-time high ${money(s.ath, 2)}`;
+    el('text', { x: W - m.r, y: Y(s.ath) - 6, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = tr('All-time high {price}', { price: money(s.ath, 2) });
   } else {
-    el('text', { x: W - m.r, y: m.t + 12, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = `All-time high ${money(s.ath, 2)} (${s.athDate}, off chart)`;
+    el('text', { x: W - m.r, y: m.t + 12, 'text-anchor': 'end', style: 'fill:var(--ath)' }, svg).textContent = tr('All-time high {price} ({date}, off chart)', { price: money(s.ath, 2), date: s.athDate });
   }
   el('path', { d: series.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(''), fill: 'none', stroke: 'var(--price)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: 0.8 }, svg);
   el('circle', { cx: X(x1), cy: Y(s.price), r: 4, fill: 'var(--price)', stroke: 'var(--panel)', 'stroke-width': 2 }, svg);
@@ -1140,18 +1774,18 @@ function drawChart() {
       hl.setAttribute('cx', near.x); hl.setAttribute('cy', near.y); hl.setAttribute('r', 10);
     } else if (near) {
       const g = near.sh * s.price - near.basis;
-      showTip(`<div class="h">Bought ${fmtDate(near.d)}</div>
-        <div class="r"><span>Shares</span><b>${num(near.sh, 4)}</b></div>
-        <div class="r"><span>Cost / share</span><b>${money(near.c, 2)}</b></div>
-        <div class="r"><span>Cost basis</span><b>${money(near.basis, 2)}</b></div>
-        <div class="r"><span>Gain now</span><b class="${clsUsd(g)}">${signed(g)}</b></div>
-        <div class="r"><span>${near.L ? 'Long-term since' : 'Long-term from'}</span><b>${fmtDate(near.lt)}</b></div>` +
-        (near.wash ? '<div class="t">Wash sale: cost includes a loss that couldn’t be claimed earlier.</div>' : ''), e.clientX, e.clientY);
+      showTip(`<div class="h">${tr('Bought {date}', { date: fmtDate(near.d) })}</div>
+        <div class="r"><span>${tr('Shares')}</span><b>${num(near.sh, 4)}</b></div>
+        <div class="r"><span>${tr('Cost / share')}</span><b>${money(near.c, 2)}</b></div>
+        <div class="r"><span>${tr('Cost basis')}</span><b>${money(near.basis, 2)}</b></div>
+        <div class="r"><span>${tr('Gain now')}</span><b class="${clsUsd(g)}">${signed(g)}</b></div>
+        <div class="r"><span>${near.L ? tr('Long-term since') : tr('Long-term from')}</span><b>${fmtDate(near.lt)}</b></div>` +
+        (near.wash ? `<div class="t">${tr('Wash sale: cost includes a loss that couldn’t be claimed earlier.')}</div>` : ''), e.clientX, e.clientY);
       hl.setAttribute('cx', near.x); hl.setAttribute('cy', near.y); hl.setAttribute('r', R(near.sh) + 3);
     } else if (mx >= m.l && mx <= W - m.r) {
       const t = x0 + ((mx - m.l) / (W - m.l - m.r)) * (x1 - x0);
       let q = series[0]; series.forEach((p) => { if (Math.abs(p[0] - t) < Math.abs(q[0] - t)) q = p; });
-      showTip(`<div class="h">Week of ${fmtDate(new Date(q[0]).toISOString().slice(0, 10))}</div><div class="r"><span>Close</span><b>${money(q[1], 2)}</b></div>`, e.clientX, e.clientY);
+      showTip(`<div class="h">${tr('Week of {date}', { date: fmtDate(new Date(q[0]).toISOString().slice(0, 10)) })}</div><div class="r"><span>${tr('Closing price')}</span><b>${money(q[1], 2)}</b></div>`, e.clientX, e.clientY);
       hl.setAttribute('cx', X(q[0])); hl.setAttribute('cy', Y(q[1])); hl.setAttribute('r', 4);
     }
   });
@@ -1159,10 +1793,10 @@ function drawChart() {
 }
 
 function tradeTip(a) {
-  return `<div class="h">${esc(a.t)} · ${a.type === 'SELL' ? 'Sold' : 'Bought'} ${fmtDate(a.d)}</div>
-    <div class="r"><span>Shares</span><b>${num(a.sh, 4)}</b></div>
-    <div class="r"><span>Price</span><b>${money(a.price, 2)}</b></div>
-    <div class="r"><span>${a.type === 'SELL' ? 'Proceeds' : 'Paid'}</span><b>${money(a.amount, 2)}</b></div>`;
+  return `<div class="h">${esc(a.t)} · ${tr(a.type === 'SELL' ? 'Sold {date}' : 'Bought {date}', { date: fmtDate(a.d) })}</div>
+    <div class="r"><span>${tr('Shares')}</span><b>${num(a.sh, 4)}</b></div>
+    <div class="r"><span>${tr('Price')}</span><b>${money(a.price, 2)}</b></div>
+    <div class="r"><span>${a.type === 'SELL' ? tr('Proceeds') : tr('Paid')}</span><b>${money(a.amount, 2)}</b></div>`;
 }
 
 // all stocks: every buy (above the line) and sale (below), by date and dollar amount
@@ -1179,7 +1813,7 @@ function drawTrades() {
   const hi = L(maxOf('BUY')) + 0.3 || 1, lo = maxOf('SELL') ? -(L(maxOf('SELL')) + 0.3) : 0; // room for the Bought / Sold labels
   const X = (t) => m.l + ((t - x0) / Math.max(1, x1 - x0)) * (W - m.l - m.r);
   const Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);   // v: signed log amount
-  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Every buy and sale by date and dollar amount' });
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': tr('Every buy and sale by date and dollar amount') });
   chartEl.appendChild(svg);
 
   for (const side of [1, -1]) {
@@ -1192,7 +1826,7 @@ function drawTrades() {
   const every = W < 560 ? 6 : 3;
   for (; d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + every)) {
     el('line', { x1: X(d.getTime()), x2: X(d.getTime()), y1: H - m.b, y2: H - m.b + 4, stroke: 'var(--line)' }, svg);
-    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, svg).textContent = S.axisDate(d, '2-digit');
   }
   el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: 'var(--line)' }, svg);
   if (yearAgo > x0) {
@@ -1200,8 +1834,8 @@ function drawTrades() {
     el('line', { x1: X(yearAgo), x2: X(yearAgo), y1: m.t, y2: H - m.b, stroke: 'var(--fg)', 'stroke-opacity': 0.45, 'stroke-width': 1.5 }, svg);
   }
   el('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1.5 }, svg);
-  el('text', { x: m.l + 6, y: m.t + 12, style: 'font-weight:600' }, svg).textContent = '↑ Bought';
-  if (lo < 0) el('text', { x: m.l + 6, y: H - m.b - 8, style: 'font-weight:600' }, svg).textContent = '↓ Sold';
+  el('text', { x: m.l + 6, y: m.t + 12, style: 'font-weight:600' }, svg).textContent = tr('↑ Bought');
+  if (lo < 0) el('text', { x: m.l + 6, y: H - m.b - 8, style: 'font-weight:600' }, svg).textContent = tr('↓ Sold');
 
   const pts = trades.map((a) => ({ ...a, x: X(ms(a.d)), y: Y(a.type === 'SELL' ? -L(a.amount) : L(a.amount)) }));
   pts.forEach((p) => {
@@ -1236,7 +1870,7 @@ function drawSoon() {
     .sort((a, b) => (a.lt < b.lt ? -1 : a.lt > b.lt ? 1 : a.t < b.t ? -1 : 1))
     .map((g) => `<tr><td class="l">${fmtDate(g.lt)}</td><td class="l tkr">${S.logo(g.t, 18)}${esc(g.t)}</td><td>${num(g.sh, 3)}</td><td class="mid-only">${money(g.basis)}</td><td>${money(g.val)}</td>
       <td class="${clsUsd(g.gain)}">${signed(g.gain)}</td><td>${g.gain > 0.5 ? money(savedByWaiting(g.gain)) : '—'}</td></tr>`).join('')
-    || '<tr><td class="l" colspan="7">Nothing turns long-term in the next 90 days.</td></tr>';
+    || `<tr><td class="l" colspan="7">${tr('Nothing turns long-term in the next 90 days.')}</td></tr>`;
 }
 
 // ---- losses you could use ----
@@ -1254,8 +1888,8 @@ function drawLosses() {
       <td class="${h.ltLoss >= 0.5 ? 'neg' : ''}">${h.ltLoss >= 0.5 ? signed(-h.ltLoss) : '—'}</td>
       <td>${money(h.stLoss * rates.short + h.ltLoss * rates.long)}</td>
       <td class="l" style="white-space:normal">${h.washLoss >= 0.5
-        ? `<span class="pill p-wash">Wait until ${fmtDate(h.clearOn)}</span> You bought more on ${fmtDate(h.lastBuy)}; selling now would block about ${money(h.washLoss)} of the loss.`
-        : `<span class="pill p-go">Clear to sell</span> Don't buy it again before ${safeBy}.`}</td>
+        ? `<span class="pill p-wash">${tr('Wait until {date}', { date: fmtDate(h.clearOn) })}</span> ${tr('You bought more on {date}; selling now would block about {amount} of the loss.', { date: fmtDate(h.lastBuy), amount: money(h.washLoss) })}`
+        : `<span class="pill p-go">${tr('Clear to sell')}</span> ${tr('Don\'t buy it again before {date}.', { date: safeBy })}`}</td>
     </tr>`).join('');
   document.getElementById('loss-table').hidden = !lossRows.length;
   $('loss-none').hidden = !!lossRows.length;
@@ -1270,14 +1904,14 @@ function drawYears() {
   const tiles = $('year-tiles'), body = document.querySelector('#year-table tbody');
   if (!years || !years.length) {
     tiles.innerHTML = '';
-    $('years-note').textContent = years ? "You haven't sold anything yet, so there are no gains to report." : 'This result was saved before sales were split by tax year. Upload your file again to see them.';
+    $('years-note').textContent = years ? tr('You haven\'t sold anything yet, so there are no gains to report.') : tr('This result was saved before sales were split by tax year. Upload your file again to see them.');
     body.innerHTML = '';
     document.getElementById('year-table').hidden = true;
     return;
   }
   const thisYear = asof.slice(0, 4);
   const cur = years.find((y) => y.year === thisYear) || { st: 0, lt: 0, sales: 0 };
-  $('years-note').textContent = `Gains and losses from the sales in your export. The estimated tax uses your rates at the top; dividends and other accounts aren't included.`;
+  $('years-note').textContent = tr('Gains and losses from the sales in your export. The estimated tax uses your rates at the top; dividends and other accounts aren\'t included.');
   // losses you could still take today, leaving out what a wash sale would block
   let availSt = 0, availLt = 0;
   for (const { h } of lossRows) {
@@ -1288,10 +1922,12 @@ function drawYears() {
   const net = cur.st + cur.lt;
   const tile = (k, v, c, sub) => `<div class="tile"><div class="k">${k}</div><div class="v ${c}">${v}</div><div class="s">${sub}</div></div>`;
   tiles.innerHTML =
-    tile(`${thisYear} short-term gain so far`, signed(cur.st), clsUsd(cur.st), `Taxed at ${pct(rates.short)}`) +
-    tile(`${thisYear} long-term gain so far`, signed(cur.lt), clsUsd(cur.lt), `Taxed at ${pct(rates.long)}`) +
-    tile(`Estimated tax on ${thisYear} sales`, money(taxNow), '', net < -0.5 ? 'A net loss: up to $3,000 offsets other income, the rest carries forward' : `${cur.sales} ${cur.sales === 1 ? 'sale' : 'sales'} this year`) +
-    tile('Losses you could still use', money(availSt + availLt), '', availSt + availLt < 0.5 ? 'Nothing is below cost' : taxNow - taxAfter >= 0.5 ? `Selling them would cut this year's tax by about ${money(taxNow - taxAfter)}` : 'No gains to offset yet this year');
+    tile(tr('{year} short-term gain so far', { year: thisYear }), signed(cur.st), clsUsd(cur.st), tr('Taxed at {pct}', { pct: pct(rates.short) })) +
+    tile(tr('{year} long-term gain so far', { year: thisYear }), signed(cur.lt), clsUsd(cur.lt), tr('Taxed at {pct}', { pct: pct(rates.long) })) +
+    tile(tr('Estimated tax on {year} sales', { year: thisYear }), money(taxNow), '', net < -0.5 ? tr('A net loss: up to $3,000 offsets other income, the rest carries forward')
+      : tr('{sales} this year', { sales: `${cur.sales} ${plural(cur.sales, 'sale', 'sales', 'продажа', 'продажи', 'продаж')}` })) +
+    tile(tr('Losses you could still use'), money(availSt + availLt), '', availSt + availLt < 0.5 ? tr('Nothing is below cost')
+      : taxNow - taxAfter >= 0.5 ? tr('Selling them would cut this year\'s tax by about {amount}', { amount: money(taxNow - taxAfter) }) : tr('No gains to offset yet this year'));
   document.getElementById('year-table').hidden = false;
   body.innerHTML = years.map((y) => `<tr>
       <td class="l tkr">${y.year}</td><td>${y.sales}</td><td class="mid-only">${money(y.proceeds)}</td>

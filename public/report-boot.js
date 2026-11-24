@@ -7,6 +7,6 @@
 
   document.getElementById('data').textContent = JSON.stringify(data);
   const s = document.createElement('script');
-  s.src = 'report.js?v=999d2e7a5c';
+  s.src = 'report.js?v=bc79a8ae61';
   document.body.appendChild(s);
 })();

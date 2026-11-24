@@ -12,11 +12,11 @@ const num = (s) => (s == null || s === '' ? 0 : Number(s));
 const qfxDate = (s) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
 const blocks = (text, tag) => text.match(new RegExp(`<${tag}>[\\s\\S]*?</${tag}>`, 'g')) || [];
 
-const { anniversary, addDays, daysBetween, sellOrder, nyStamp } =
+const { anniversary, addDays, daysBetween, sellOrder, nyStamp, t } =
   typeof module !== 'undefined' && module.exports ? require('./shared') : window.Shared;
 
 function readQfx(text) {
-  if (!/OFXHEADER|<OFX>/i.test(text.slice(0, 2000))) throw new Error("This doesn't look like a Quicken (.qfx) export.");
+  if (!/OFXHEADER|<OFX>/i.test(text.slice(0, 2000))) throw new Error(t('This doesn\'t look like a Quicken (.qfx) export.'));
   const tickers = {};
   for (const b of blocks(text, 'SECINFO')) tickers[field(b, 'UNIQUEID')] = field(b, 'TICKER');
   const tick = (cusip) => tickers[cusip] || cusip;
@@ -181,7 +181,7 @@ async function buildData(text, { method = 'FIFO', fetchQuote, fetchSeries, bench
   const { events, positions, income } = readQfx(text);
   const { lots, splits, warnings, splitEvents, realized, activity, washSales } = rebuildLots(events, method);
   const tickers = Object.keys(lots).sort();
-  if (!tickers.length) throw new Error('No open stock positions were found in this export. If the shares were transferred out, export the account they moved to.');
+  if (!tickers.length) throw new Error(t('No open stock positions were found in this export. If the shares were transferred out, export the account they moved to.'));
 
   const mismatches = [];
   if (Object.keys(positions).length) {

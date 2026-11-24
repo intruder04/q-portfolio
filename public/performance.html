@@ -6,10 +6,10 @@
 <meta name="referrer" content="no-referrer">
 <title>Performance · Q portfolio</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<script src="theme-boot.js?v=d3edbe5132"></script>
+<script src="theme-boot.js?v=267d7adeeb"></script>
 <link rel="stylesheet" href="themes.css?v=6b52a00c54">
-<link rel="stylesheet" href="base.css?v=912f019b92">
-<link rel="stylesheet" href="picker.css?v=7c7fc95064">
+<link rel="stylesheet" href="base.css?v=8fc90d4239">
+<link rel="stylesheet" href="picker.css?v=b6e1d7651f">
 <link rel="stylesheet" href="web.css?v=d94a1d3209">
 <link rel="stylesheet" href="perf.css?v=f4a86389aa">
 </head>
@@ -35,6 +35,7 @@
     </select>
     <button class="wb-btn" id="wb-hide" type="button" aria-pressed="false" title="Hides every dollar amount and share count, leaving percentages, so you can share a screenshot">Hide amounts</button>
     <button class="wb-btn" id="wb-forget" type="button">Forget this result</button>
+    <div class="lang-switch"></div>
     <div class="wb-theme"><span class="tp-label">Theme</span><div class="theme-picker"></div></div>
   </div>
   <p class="wb-status" id="wb-status" role="status"></p>
@@ -98,11 +99,11 @@
         <div class="chg"><div class="k">Last week</div><div class="v" id="c-week"></div><div class="s" id="c-week-s"></div></div>
         <div class="chg"><div class="k">This year</div><div class="v" id="c-ytd"></div><div class="s" id="c-ytd-s"></div></div>
         <div class="chg">
-          <div class="k"><label for="years">Last</label> <input id="years" type="number" min="0.5" max="50" step="0.5" value="3" inputmode="decimal" aria-describedby="c-years-s"> years</div>
+          <div class="k"><label for="years" id="years-last">Last</label> <input id="years" type="number" min="0.5" max="50" step="0.5" value="3" inputmode="decimal" aria-describedby="c-years-s"> <span id="years-unit">years</span></div>
           <div class="v" id="c-years"></div><div class="s" id="c-years-s"></div>
         </div>
       </div>
-      <p class="note">Gains don't count money you added or took out; dividends count as gain. Percentages are time-weighted, next to the index's return for the same stretch.</p>
+      <p class="note" data-i18n="gains-note">Gains don't count money you added or took out; dividends count as gain. Percentages are time-weighted, next to the index's return for the same stretch.</p>
     </section>
 
     <section class="tiles" aria-label="Totals">
@@ -149,7 +150,7 @@
       <div class="card-head">
         <div>
           <h2>How each stock did</h2>
-          <p class="note">Total gain adds up the gain on shares you still hold, gains on shares you sold, and dividends. <b id="h-vs-label">vs market</b> compares it with putting the same money, on the same days, into the index.</p>
+          <p class="note" data-i18n="holdings-note">Total gain adds up the gain on shares you still hold, gains on shares you sold, and dividends. <b id="h-vs-label">vs market</b> compares it with putting the same money, on the same days, into the index.</p>
         </div>
         <label class="check"><input type="checkbox" id="show-sold"> Include stocks you sold</label>
       </div>
@@ -199,11 +200,11 @@
     <section class="card">
       <h2>How this is worked out</h2>
       <ul class="notes">
-        <li><b>Value</b> is each week's shares times that week's closing price, adjusted for splits; the last point uses today's prices. Cash in your account isn't included, only stocks.</li>
-        <li><b>Put in</b> is what you spent on buys minus what you got from sales. Buys paid for with dividends count as money put in, and the dividends count as gain, so nothing is counted twice.</li>
-        <li><b>The same money in the market</b> buys the index with each purchase's dollars on the same day and sells it with each sale's dollars. Index prices include reinvested dividends. This is the fairest "what if": the same amounts, at the same times.</li>
-        <li><b>Return (%)</b> is time-weighted: it shows how your picks grew, ignoring when you added money, so it's the right number to compare with an index. <b>Your yearly return</b> is money-weighted: what your actual timing earned, per year.</li>
-        <li><b>Largest drop</b> is the biggest fall from a previous high in the time-weighted return.</li>
+        <li data-i18n="how-value"><b>Value</b> is each week's shares times that week's closing price, adjusted for splits; the last point uses today's prices. Cash in your account isn't included, only stocks.</li>
+        <li data-i18n="how-put-in"><b>Put in</b> is what you spent on buys minus what you got from sales. Buys paid for with dividends count as money put in, and the dividends count as gain, so nothing is counted twice.</li>
+        <li data-i18n="how-market"><b>The same money in the market</b> buys the index with each purchase's dollars on the same day and sells it with each sale's dollars. Index prices include reinvested dividends. This is the fairest "what if": the same amounts, at the same times.</li>
+        <li data-i18n="how-return"><b>Return (%)</b> is time-weighted: it shows how your picks grew, ignoring when you added money, so it's the right number to compare with an index. <b>Your yearly return</b> is money-weighted: what your actual timing earned, per year.</li>
+        <li data-i18n="how-drop"><b>Largest drop</b> is the biggest fall from a previous high in the time-weighted return.</li>
         <li>Prices come from Yahoo Finance. A stock that's no longer listed uses the prices you traded at.</li>
         <li>This is a record of past results, not tax or investment advice.</li>
       </ul>
@@ -212,15 +213,16 @@
 </div>
 <div class="tip" id="tip" hidden></div>
 
+<script src="i18n.js?v=8a5c348d70"></script>
 <script src="theme-list.js?v=8b38271884"></script>
-<script src="web.js?v=373cacec7b"></script>
-<script src="shared.js?v=70d83b4a8d"></script>
-<script src="lots.js?v=bd2cf13c64"></script>
-<script src="prices.js?v=c73adf03d8"></script>
+<script src="web.js?v=dfdea51099"></script>
+<script src="shared.js?v=6bf5cc7c08"></script>
+<script src="lots.js?v=21ee1c94cb"></script>
+<script src="prices.js?v=1a2c85a74f"></script>
 <script src="perf-calc.js?v=bdd2b262d1"></script>
 <script src="market.js?v=b7eb315df0"></script>
-<script src="toolbar.js?v=be0fec9903"></script>
-<script src="perf.js?v=c6de4ef1f7"></script>
-<script src="share.js?v=cbecb08361"></script>
+<script src="toolbar.js?v=030f6230fd"></script>
+<script src="perf.js?v=0ef88949ca"></script>
+<script src="share.js?v=d409857180"></script>
 </body>
 </html>

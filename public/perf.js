@@ -5,8 +5,11 @@
   let data = window.TLV.loadResult();
   if (!data) return location.replace('./?new');
 
-  const BENCH = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', VTI: 'total US market' };
-  const RANGES = { '6M': 'In the last 6 months', YTD: 'This year', '1Y': 'In the last year', '2Y': 'In the last 2 years', ALL: 'Since your first purchase' };
+  // text in the chosen language (i18n.js); `tr`, because `t` is a ticker everywhere below
+  const { t: tr, plural, count } = window.Shared;
+  const stocksN = (n) => `${n} ${plural(n, 'stock', 'stocks', 'акция', 'акции', 'акций')}`;
+  const BENCH = { SPY: 'S&P 500', QQQ: 'Nasdaq 100', VTI: tr('total US market') };
+  const RANGES = { '6M': tr('In the last 6 months'), YTD: tr('This year'), '1Y': tr('In the last year'), '2Y': tr('In the last 2 years'), ALL: tr('Since your first purchase') };
   const pref = {
     get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
@@ -48,7 +51,7 @@
   wireSeg('range', (v) => { range = v; pref.set('tlv-range', v); setSeg('range', v); drawGrowth(); });
   if (window.Shared.hidden) {
     const b = $('mode').querySelector('[data-v="value"]');
-    b.disabled = true; b.title = 'Amounts are hidden';
+    b.disabled = true; b.title = tr('Amounts are hidden');
   }
   wireSeg('mode', (v) => { mode = v; pref.set('tlv-mode', v); setSeg('mode', v); drawGrowth(); });
   // An index's prices are fetched the first time it's chosen, then kept with the result.
@@ -56,7 +59,7 @@
     if (data.bench[v]?.length) return true;
     const buttons = $('bench').querySelectorAll('button');
     buttons.forEach((b) => { b.disabled = true; });
-    $('growth-note').textContent = `Getting ${BENCH[v]} prices…`;
+    $('growth-note').textContent = tr('Getting {index} prices…', { index: BENCH[v] });
     try {
       const since = window.Lots.priceHistoryStart(data.activity.map((a) => a.d));
       const { series, dayChange } = await window.Prices.fetchSeries(v, since, true);
@@ -93,7 +96,7 @@
   function render() {
     try {
       points = P.timeline(data, bench);
-      if (!points) throw new Error(`No ${BENCH[bench]} prices to compare with.`);
+      if (!points) throw new Error(tr('No {index} prices to compare with.', { index: BENCH[bench] }));
       sum = P.summary(data, points);
     } catch (err) {
       showProblem(err);
@@ -121,8 +124,8 @@
     // last trading day
     const t = P.today(data, bench);
     const asofDay = data.asof.slice(0, 10);
-    $('c-day-k').textContent = asofDay === window.Shared.nyDay(Date.now()) ? 'Today' : `${fmtDate(asofDay)} (last trading day)`;
-    if (t.pct == null) { $('c-day').textContent = '—'; $('c-day-s').textContent = 'Refresh prices to see today'; }
+    $('c-day-k').textContent = asofDay === window.Shared.nyDay(Date.now()) ? tr('Today') : tr('{date} (last trading day)', { date: fmtDate(asofDay) });
+    if (t.pct == null) { $('c-day').textContent = '—'; $('c-day-s').textContent = tr('Refresh prices to see today'); }
     else show('c-day', t.change, t.pct, t.benchPct);
 
     const last = points.length - 1;
@@ -132,53 +135,62 @@
     }
     const n = Number(yearsInput.value);
     if (!(n > 0)) return;
+    $('years-last').textContent = plural(n, 'Last', 'Last', 'За последний', 'За последние', 'За последние');
+    $('years-unit').textContent = plural(n, 'year', 'years', 'год', 'года', 'лет');
     const i = P.rangeStart(points, `${n}Y`);
     const p = P.period(points, i, last);
     show('c-years', p.gain, p.twr, p.benchReturn);
     if (i === 0) {
       const held = (ms(points[last].d) - ms(points[0].d)) / (365.25 * 864e5);
-      $('c-years-s').innerHTML += ` · <span>you've invested ${held.toFixed(1)} years</span>`;
+      $('c-years-s').innerHTML += ` · <span>${tr('you\'ve invested {n} years', { n: held.toLocaleString(window.Shared.LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</span>`;
     }
   }
 
   function drawHeader() {
     const held = Object.keys(data.stocks).length;
     const unpriced = Object.keys(data.stocks).filter((t) => data.stocks[t].noPrice);
-    $('asof').textContent = `Prices as of ${fmtDate(data.asof.slice(0, 10))}, ${data.asof.slice(11)} New York time · ${held} stocks held · ` +
-      `${data.activity.length.toLocaleString('en-US')} trades since ${fmtDate(sum.since)}` +
-      (unpriced.length ? ` · No price found for ${unpriced.join(', ')}: valued at what you last paid` : '');
+    const trades = data.activity.length;
+    $('asof').textContent = tr('Prices as of {date}, {time} New York time', { date: fmtDate(data.asof.slice(0, 10)), time: data.asof.slice(11) }) + ' · ' +
+      tr('{stocks} held', { stocks: stocksN(held) }) + ' · ' +
+      tr('{n} {trades} since {date}', { n: count(trades), trades: plural(trades, 'trade', 'trades', 'сделка', 'сделки', 'сделок'), date: fmtDate(sum.since) }) +
+      (unpriced.length ? ' · ' + tr('No price found for {list}: valued at what you last paid', { list: unpriced.join(', ') }) : '');
     const B = BENCH[bench];
     const ahead = sum.vsMarket >= 0;
+    const change = tr(sum.gain >= 0 ? 'up {amount}' : 'down {amount}', { amount: money(Math.abs(sum.gain)) });
+    const diff = tr(ahead ? '{amount} ahead of' : '{amount} behind', { amount: money(Math.abs(sum.vsMarket)) });
     $('lede').innerHTML =
-      `Your stocks are worth <b>${money(sum.value)}</b>. You put in <b>${money(sum.invested)}</b> net, so you're ` +
-      `<b class="${cls(sum.gain)}">${sum.gain >= 0 ? 'up' : 'down'} ${money(Math.abs(sum.gain))}</b>` +
+      tr('Your stocks are worth {value}. You put in {invested} net, so you\'re {change}', {
+        value: `<b>${money(sum.value)}</b>`, invested: `<b>${money(sum.invested)}</b>`, change: `<b class="${cls(sum.gain)}">${change}</b>`,
+      }) +
       (sum.gainPct != null ? ` (${signedPct(sum.gainPct)})` : '') +
-      (sum.divs > 0.5 ? `, counting ${money(sum.divs)} of dividends` : '') + '. ' +
-      `The same money in the ${B} would be worth ${money(sum.shadow)}, so you're ` +
-      `<b class="${cls(sum.vsMarket)}">${money(Math.abs(sum.vsMarket))} ${ahead ? 'ahead of' : 'behind'}</b> the market.`;
+      (sum.divs > 0.5 ? tr(', counting {amount} of dividends', { amount: money(sum.divs) }) : '') + '. ' +
+      tr('The same money in the {index} would be worth {value}, so you\'re {diff} the market.', {
+        index: B, value: money(sum.shadow), diff: `<b class="${cls(sum.vsMarket)}">${diff}</b>`,
+      });
   }
 
   function drawTiles() {
     const B = BENCH[bench];
     $('t-value').textContent = compact(sum.value);
-    $('t-value-s').textContent = `${Object.keys(data.stocks).length} stocks · ${compact(sum.invested)} put in`;
+    $('t-value-s').textContent = stocksN(Object.keys(data.stocks).length) + ' · ' + tr('{amount} put in', { amount: compact(sum.invested) });
     const hidden = window.Shared.hidden;            // amounts hidden: percentages as headlines
     $('t-gain').textContent = hidden ? signedPct(sum.gainPct) : signedCompact(sum.gain);
     $('t-gain').className = 'v ' + cls(sum.gain);
-    $('t-gain-s').textContent = `${signedPct(sum.gainPct)} on what you put in` + (sum.divs > 0.5 ? ` · ${compact(sum.divs)} dividends` : '');
-    $('t-vs-k').textContent = `Compared with the ${B}`;
+    $('t-gain-s').textContent = tr('{pct} on what you put in', { pct: signedPct(sum.gainPct) }) + (sum.divs > 0.5 ? ' · ' + tr('{amount} dividends', { amount: compact(sum.divs) }) : '');
+    $('t-vs-k').textContent = tr('Compared with the {index}', { index: B });
     $('t-vs').textContent = hidden ? signedPct(sum.twr - sum.benchReturn) : signedCompact(sum.vsMarket);
     $('t-vs').className = 'v ' + cls(sum.vsMarket);
     $('t-vs-s').textContent = hidden
-      ? `${sum.twr >= sum.benchReturn ? 'More' : 'Less'} return than the ${B}: you ${signedPct(sum.twr)}, ${B} ${signedPct(sum.benchReturn)}`
-      : `${sum.vsMarket >= 0 ? 'Ahead' : 'Behind'} · the same money there: ${compact(sum.shadow)}`;
+      ? tr(sum.twr >= sum.benchReturn ? 'More return than the {index}: you {mine}, {index} {theirs}' : 'Less return than the {index}: you {mine}, {index} {theirs}',
+        { index: B, mine: signedPct(sum.twr), theirs: signedPct(sum.benchReturn) })
+      : tr(sum.vsMarket >= 0 ? 'Ahead · the same money there: {amount}' : 'Behind · the same money there: {amount}', { amount: compact(sum.shadow) });
     $('t-irr').textContent = sum.irr == null ? '—' : signedPct(sum.irr);
-    $('t-irr-s').textContent = sum.irr == null ? 'Shown after a year of history' : `${B}: ${signedPct(sum.marketIrr)} a year with the same money`;
+    $('t-irr-s').textContent = sum.irr == null ? tr('Shown after a year of history') : tr('{index}: {pct} a year with the same money', { index: B, pct: signedPct(sum.marketIrr) });
     const dd = sum.drawdown;
     $('t-dd').textContent = dd.drawdown < -0.0005 ? signedPct(dd.drawdown) : '0%';
-    $('t-dd-s').textContent = dd.index != null && dd.drawdown < -0.0005 ? `From a previous high, low in the week of ${fmtDate(points[dd.index].d)}` : 'No fall from a high so far';
-    $('h-vs-label').textContent = `vs ${B}`;
-    $('h-vs-th').textContent = `vs ${B}`;
+    $('t-dd-s').textContent = dd.index != null && dd.drawdown < -0.0005 ? tr('From a previous high, low in the week of {date}', { date: fmtDate(points[dd.index].d) }) : tr('No fall from a high so far');
+    $('h-vs-label').textContent = tr('vs {index}', { index: B });
+    $('h-vs-th').textContent = tr('vs {index}', { index: B });
   }
 
   // ---------- what you own: treemap ----------
@@ -225,7 +237,8 @@
   addEventListener('tlv-theme', () => { if (points) drawTreemap(); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (points) drawTreemap(); });
 
-  const TM_NOTE = 'Each tile is a stock, sized by its share of your portfolio and grouped by sector. Hover a tile for details; click one to change its sector. Holdings under 1.5% are drawn at 1.5% so they stay visible, with their real share on the label.';
+  const TM_NOTE = tr('Each tile is a stock, sized by its share of your portfolio and grouped by sector. Hover a tile for details; click one to change its sector. Holdings under 1.5% are drawn at 1.5% so they stay visible, with their real share on the label.');
+  const sectorName = (name) => tr(name);          // sectors are kept in English, shown translated
   const MIN_SHARE = 0.015;
 
   // Sectors you've chosen yourself, kept in this browser: { TICKER: 'Sector' }.
@@ -249,13 +262,13 @@
   function openPop(t, tile) {
     hideTip();
     popFor = t.t;
-    pop.setAttribute('aria-label', `Sector for ${t.t}`);
+    pop.setAttribute('aria-label', tr('Sector for {ticker}', { ticker: t.t }));
     const label = document.createElement('label');
     label.htmlFor = 'tm-pop-sel';
-    label.innerHTML = `Sector for <b>${esc(t.t)}</b>`;
+    label.innerHTML = tr('Sector for {ticker}', { ticker: `<b>${esc(t.t)}</b>` });
     const sel = document.createElement('select');
     sel.id = 'tm-pop-sel';
-    sel.append(new Option(`As Yahoo lists it: ${t.yahooSector}`, ''), ...SECTORS.map((s) => new Option(s, s)));
+    sel.append(new Option(tr('As Yahoo lists it: {sector}', { sector: sectorName(t.yahooSector) }), ''), ...SECTORS.map((s) => new Option(sectorName(s), s)));
     sel.value = overrides[t.t] || '';
     sel.addEventListener('change', () => {
       if (sel.value) overrides[t.t] = sel.value; else delete overrides[t.t];
@@ -265,7 +278,7 @@
       document.querySelector(`.tm-tile[data-t="${CSS.escape(t.t)}"]`)?.focus();
     });
     const hint = document.createElement('p');
-    hint.textContent = 'Saved in this browser. Choose the first option to go back to Yahoo’s sector.';
+    hint.textContent = tr('Saved in this browser. Choose the first option to go back to Yahoo’s sector.');
     pop.replaceChildren(label, sel, hint);
     pop.hidden = false;
     const r = tile.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
@@ -304,7 +317,7 @@
         chip.style.background = color;
         const share = document.createElement('span');
         share.textContent = pct(g.share);
-        h.append(chip, document.createTextNode(g.name + ' '), share);
+        h.append(chip, document.createTextNode(sectorName(g.name) + ' '), share);
         box.append(h);
       }
       for (const t of place(g.items, gx, gy + head, gw, gh - head)) {
@@ -317,7 +330,7 @@
         tile.dataset.t = t.t;
         tile.setAttribute('role', 'listitem');
         tile.setAttribute('aria-haspopup', 'dialog');
-        tile.setAttribute('aria-label', `${t.t}, ${g.name}, ${pct(t.share)} of your stocks, ${money(t.value)}, ${signed(t.gain)} on shares held. Press Enter to change its sector.`);
+        tile.setAttribute('aria-label', tr('{ticker}, {sector}, {share} of your stocks, {value}, {gain} on shares held. Press Enter to change its sector.', { ticker: t.t, sector: sectorName(g.name), share: pct(t.share), value: money(t.value), gain: signed(t.gain) }));
         Object.assign(tile.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', background: bg, color: inkFor(bg) });
         const fs = Math.max(9, Math.min(34, w / (t.t.length * 0.66 + 0.6), h / 2.6));
         const label = tmColor === 'gain' ? signedPct(t.gainPct) : pct(t.share);
@@ -352,11 +365,11 @@
         }
         const show = (cx, cy) => showTip(
           `<div class="h">${esc(t.t)} · ${esc(t.name)}</div>` +
-          `<div class="r"><span>${esc(g.name)}${overrides[t.t] ? ' (your choice)' : ''}</span><b>${esc(t.industry || '')}</b></div>` +
-          `<div class="r"><span>Value</span><b>${money(t.value)}</b></div>` +
-          `<div class="r"><span>Share of your stocks</span><b>${pct(t.share)}</b></div>` +
-          `<div class="r"><span>Gain on shares held</span><b class="${cls(t.gain)}">${signed(t.gain)} (${signedPct(t.gainPct)})</b></div>` +
-          `<div class="r"><span>Long-term shares</span><b>${num(t.longShares, 1)} of ${num(t.shares, 1)}</b></div>`,
+          `<div class="r"><span>${esc(sectorName(g.name))}${overrides[t.t] ? ' ' + tr('(your choice)') : ''}</span><b>${esc(t.industry || '')}</b></div>` +
+          `<div class="r"><span>${tr('Value')}</span><b>${money(t.value)}</b></div>` +
+          `<div class="r"><span>${tr('Share of your stocks')}</span><b>${pct(t.share)}</b></div>` +
+          `<div class="r"><span>${tr('Gain on shares held')}</span><b class="${cls(t.gain)}">${signed(t.gain)} (${signedPct(t.gainPct)})</b></div>` +
+          `<div class="r"><span>${tr('Long-term shares')}</span><b>${tr('{a} of {b}', { a: num(t.longShares, 1), b: num(t.shares, 1) })}</b></div>`,
           cx, cy);
         tile.addEventListener('pointermove', (e) => show(e.clientX, e.clientY));
         tile.addEventListener('pointerleave', hideTip);
@@ -369,15 +382,15 @@
     }
 
     $('tm-legend').innerHTML = tmColor === 'gain'
-      ? `<span>Below what you paid</span><span class="ramp" style="background:linear-gradient(90deg, ${token('--bad')}, ${token('--neutral-bg')}, ${token('--good')})"></span><span>Above · full color at ±50%</span>`
-      : comp.groups.map((g) => `<span><i style="background:${sectorColor(g.name)}"></i>${esc(g.name)} ${pct(g.share)}</span>`).join('');
+      ? `<span>${tr('Below what you paid')}</span><span class="ramp" style="background:linear-gradient(90deg, ${token('--bad')}, ${token('--neutral-bg')}, ${token('--good')})"></span><span>${tr('Above · full color at ±50%')}</span>`
+      : comp.groups.map((g) => `<span><i style="background:${sectorColor(g.name)}"></i>${esc(sectorName(g.name))} ${pct(g.share)}</span>`).join('');
   }
 
   // Sectors come from a lookup per stock, done once and kept with the result.
   async function ensureProfiles() {
     const missing = Object.keys(data.stocks).filter((t) => !data.profiles?.[t] && !data.stocks[t].noPrice);
     if (!missing.length) return;
-    $('tm-note').textContent = `Looking up sectors for ${missing.length} stocks…`;
+    $('tm-note').textContent = tr('Looking up sectors for {stocks}…', { stocks: stocksN(missing.length) });
     const found = {};
     await window.Lots.pool(missing, async (t) => {
       try { found[t] = await window.Prices.fetchProfile(t); } catch { /* try again next visit */ }
@@ -403,21 +416,24 @@
     // legend and notes
     const sw = (style, extra = '') => `<i class="sw ${extra}" style="${style}"></i>`;
     $('legend').innerHTML = mode === 'value'
-      ? `<span>${sw('border-color:var(--lt)')}Your stocks <b>${money(last.value)}</b></span>` +
-        `<span>${sw('border-color:var(--price)', 'dash')}Same money in the ${B} <b>${money(last.shadow)}</b></span>` +
-        `<span>${sw('background:var(--neutral-bg);border:1px solid var(--st)', 'area')}Put in, net <b>${money(last.invested)}</b></span>` +
-        `<span>${sw('background:var(--lt)', 'bar')}Bought</span><span>${sw('background:var(--ath)', 'bar')}Sold</span>`
-      : `<span>${sw('border-color:var(--lt)')}Your stocks (time-weighted) <b>${signedPct(per.twr)}</b></span>` +
+      ? `<span>${sw('border-color:var(--lt)')}${tr('Your stocks')} <b>${money(last.value)}</b></span>` +
+        `<span>${sw('border-color:var(--price)', 'dash')}${tr('Same money in the {index}', { index: B })} <b>${money(last.shadow)}</b></span>` +
+        `<span>${sw('background:var(--neutral-bg);border:1px solid var(--st)', 'area')}${tr('Put in, net')} <b>${money(last.invested)}</b></span>` +
+        `<span>${sw('background:var(--lt)', 'bar')}${tr('Bought')}</span><span>${sw('background:var(--ath)', 'bar')}${tr('Sold')}</span>`
+      : `<span>${sw('border-color:var(--lt)')}${tr('Your stocks (time-weighted)')} <b>${signedPct(per.twr)}</b></span>` +
         `<span>${sw('border-color:var(--price)', 'dash')}${B} <b>${signedPct(per.benchReturn)}</b></span>` +
-        `<span>${sw('background:var(--lt)', 'bar')}Bought</span><span>${sw('background:var(--ath)', 'bar')}Sold</span>`;
+        `<span>${sw('background:var(--lt)', 'bar')}${tr('Bought')}</span><span>${sw('background:var(--ath)', 'bar')}${tr('Sold')}</span>`;
     $('growth-note').textContent = mode === 'value'
-      ? `Each week's value of your stocks, against the same money put into the ${B} on the same days. The bars underneath show what you bought and sold each week.`
-      : `How your stocks grew with your deposits taken out (time-weighted), against the ${B}, from the start of the period.`;
+      ? tr('Each week\'s value of your stocks, against the same money put into the {index} on the same days. The bars underneath show what you bought and sold each week.', { index: B })
+      : tr('How your stocks grew with your deposits taken out (time-weighted), against the {index}, from the start of the period.', { index: B });
     $('period').innerHTML =
-      `${RANGES[range]}${range === 'ALL' ? '' : ` (from ${fmtDate(per.from)})`}: you put in <b>${money(per.added)}</b> net ` +
-      `(bought ${money(per.bought)}, sold ${money(per.sold)}), and your stocks gained <b class="${cls(per.gain)}">${signed(per.gain)}</b>` +
-      (per.divs > 0.5 ? ` including ${money(per.divs)} of dividends` : '') + `. The same money in the ${B} would have gained ` +
-      `<b class="${cls(per.marketGain)}">${signed(per.marketGain)}</b>. Time-weighted: you <b>${signedPct(per.twr)}</b>, the ${B} <b>${signedPct(per.benchReturn)}</b>.`;
+      RANGES[range] + (range === 'ALL' ? '' : ' ' + tr('(from {date})', { date: fmtDate(per.from) })) + ': ' +
+      tr('you put in {added} net (bought {bought}, sold {sold}), and your stocks gained {gain}', {
+        added: `<b>${money(per.added)}</b>`, bought: money(per.bought), sold: money(per.sold), gain: `<b class="${cls(per.gain)}">${signed(per.gain)}</b>`,
+      }) +
+      (per.divs > 0.5 ? tr(' including {amount} of dividends', { amount: money(per.divs) }) : '') + '. ' +
+      tr('The same money in the {index} would have gained {gain}.', { index: B, gain: `<b class="${cls(per.marketGain)}">${signed(per.marketGain)}</b>` }) + ' ' +
+      tr('Time-weighted: you {mine}, the {index} {theirs}.', { index: B, mine: `<b>${signedPct(per.twr)}</b>`, theirs: `<b>${signedPct(per.benchReturn)}</b>` });
 
     // geometry
     const W = Math.max(320, chartBox.clientWidth), H = W < 560 ? 320 : 400;
@@ -434,7 +450,7 @@
     const Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * plotH;
     const fmtY = mode === 'value' ? (v) => compact(v) : (v) => `${Math.round(v * 100)}%`;
 
-    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': mode === 'value' ? `Value of your stocks against the ${B}` : `Time-weighted return against the ${B}` });
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': mode === 'value' ? tr('Value of your stocks against the {index}', { index: B }) : tr('Time-weighted return against the {index}', { index: B }) });
     chartBox.appendChild(svg);
 
     // y grid and labels
@@ -453,7 +469,7 @@
       const iso = d.toISOString().slice(0, 10), x = X(iso);
       el('line', { x1: x, x2: x, y1: H - m.b, y2: H - m.b + 4, stroke: 'var(--line)' }, svg);
       el('text', { x, y: H - 8, 'text-anchor': 'middle' }, svg).textContent =
-        d.toLocaleDateString('en-US', { month: 'short', year: every >= 12 || d.getUTCMonth() === 0 ? 'numeric' : undefined, timeZone: 'UTC' });
+        window.Shared.axisDate(d, every >= 12 || d.getUTCMonth() === 0 ? 'numeric' : undefined);
     }
 
     // series
@@ -485,8 +501,8 @@
     const maxFlow = Math.max(1, ...pts.map((p) => Math.max(p.flowIn, p.flowOut)));
     const bw = Math.max(1.5, Math.min(10, ((W - m.l - m.r) / pts.length) * 0.7));
     el('line', { x1: m.l, x2: W - m.r, y1: mid, y2: mid, stroke: 'var(--line)' }, svg);
-    el('text', { x: m.l - 8, y: stripTop + 12, 'text-anchor': 'end', class: 'strip-label' }, svg).textContent = 'Bought';
-    el('text', { x: m.l - 8, y: stripTop + strip - 2, 'text-anchor': 'end', class: 'strip-label' }, svg).textContent = 'Sold';
+    el('text', { x: m.l - 8, y: stripTop + 12, 'text-anchor': 'end', class: 'strip-label' }, svg).textContent = tr('Bought');
+    el('text', { x: m.l - 8, y: stripTop + strip - 2, 'text-anchor': 'end', class: 'strip-label' }, svg).textContent = tr('Sold');
     for (const p of pts.slice(1)) {
       const x = X(p.d) - bw / 2;
       if (p.flowIn > 0) { const h = Math.max(1.5, (p.flowIn / maxFlow) * (strip / 2 - 2)); el('rect', { x, y: mid - h, width: bw, height: h, rx: 1, fill: 'var(--lt)', opacity: 0.75 }, svg); }
@@ -514,14 +530,14 @@
         const byT = {};
         for (const t of p.trades) if (t.type === type) byT[t.t] = (byT[t.t] || 0) + t.amount;
         const list = Object.entries(byT).sort((a, b) => b[1] - a[1]);
-        return list.length ? list.slice(0, 5).map(([t, v]) => `${esc(t)} ${compact(v)}`).join(', ') + (list.length > 5 ? `, +${list.length - 5} more` : '') : '';
+        return list.length ? list.slice(0, 5).map(([t, v]) => `${esc(t)} ${compact(v)}`).join(', ') + (list.length > 5 ? tr(', +{n} more', { n: list.length - 5 }) : '') : '';
       };
-      let html = `<div class="h">${p.now ? 'Today' : 'Week ending ' + fmtDate(p.d)}</div>`;
+      let html = `<div class="h">${p.now ? tr('Today') : tr('Week ending {date}', { date: fmtDate(p.d) })}</div>`;
       html += mode === 'value'
-        ? row('var(--lt)', 'Your stocks', money(p.value)) + row('var(--price)', `Same money in the ${B}`, money(p.shadow), true) + row('var(--st)', 'Put in, net', money(p.invested))
-        : row('var(--lt)', 'Your stocks', signedPct(yours(p))) + row('var(--price)', B, signedPct(market(p)), true);
-      if (p.flowIn > 0 && i > 0) html += row('var(--lt)', 'Bought', money(p.flowIn)) + `<div class="t">${traded('BUY')}</div>`;
-      if (p.flowOut > 0 && i > 0) html += row('var(--ath)', 'Sold', money(p.flowOut)) + `<div class="t">${traded('SELL')}</div>`;
+        ? row('var(--lt)', tr('Your stocks'), money(p.value)) + row('var(--price)', tr('Same money in the {index}', { index: B }), money(p.shadow), true) + row('var(--st)', tr('Put in, net'), money(p.invested))
+        : row('var(--lt)', tr('Your stocks'), signedPct(yours(p))) + row('var(--price)', B, signedPct(market(p)), true);
+      if (p.flowIn > 0 && i > 0) html += row('var(--lt)', tr('Bought'), money(p.flowIn)) + `<div class="t">${traded('BUY')}</div>`;
+      if (p.flowOut > 0 && i > 0) html += row('var(--ath)', tr('Sold'), money(p.flowOut)) + `<div class="t">${traded('SELL')}</div>`;
       showTip(html, e.clientX, e.clientY);
     });
     hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); dots.forEach((dt) => dt.setAttribute('visibility', 'hidden')); hideTip(); });
@@ -552,7 +568,7 @@
     document.querySelector('#hold-table tbody').innerHTML = rows.map((r) => {
       const w = (Math.abs(r.gain) / maxGain) * 50;
       return `<tr class="${r.open ? '' : 'sold'}">
-        <td class="l"><span class="stock">${window.Shared.logo(r.t, 26)}<span><span class="tkr">${esc(r.t)}</span><span class="nm" title="${esc(r.name)}">${r.open ? esc(r.name) : 'Sold · ' + esc(r.name)}</span></span></span></td>
+        <td class="l"><span class="stock">${window.Shared.logo(r.t, 26)}<span><span class="tkr">${esc(r.t)}</span><span class="nm" title="${esc(r.name)}">${r.open ? esc(r.name) : tr('Sold') + ' · ' + esc(r.name)}</span></span></span></td>
         <td>${r.open ? money(r.value) : dash}</td>
         <td class="l">${r.open ? `<span class="wbar"><i style="width:${(r.weight * 100).toFixed(1)}%"></i></span>${pct(r.weight)}` : dash}</td>
         <td>${r.open ? cell(r.unrealized) : dash}</td>
@@ -577,7 +593,7 @@
     const total = maxUp + maxDown, plotH = H - m.t - m.b;
     const Y = (v) => m.t + ((maxUp - v) / total) * plotH; // v > 0 bought, v < 0 sold
     const slot = (W - m.l - m.r) / monthRows.length, bw = Math.max(2, Math.min(28, slot * 0.7));
-    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Money put in and taken out each month' });
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': tr('Money put in and taken out each month') });
     monthsBox.appendChild(svg);
     const step = niceStep(total / 4);
     for (let v = -Math.floor(maxDown / step) * step; v <= maxUp + 1e-9; v += step) {
@@ -593,25 +609,25 @@
       const hit = el('rect', { x: m.l + slot * i, y: m.t, width: slot, height: plotH, fill: 'transparent' }, svg);
       hit.addEventListener('pointermove', (e) => showTip(
         `<div class="h">${fmtMonth(r.month)}</div>` +
-        `<div class="r"><span><i style="background:var(--lt)"></i>Bought (${r.buys})</span><b>${money(r.bought)}</b></div>` +
-        (r.sold ? `<div class="r"><span><i style="background:var(--ath)"></i>Sold (${r.sells})</span><b>${money(r.sold)}</b></div>` : '') +
-        (r.divs ? `<div class="r"><span><i style="background:var(--good)"></i>Dividends</span><b>${money(r.divs, 2)}</b></div>` : ''),
+        `<div class="r"><span><i style="background:var(--lt)"></i>${tr('Bought')} (${r.buys})</span><b>${money(r.bought)}</b></div>` +
+        (r.sold ? `<div class="r"><span><i style="background:var(--ath)"></i>${tr('Sold')} (${r.sells})</span><b>${money(r.sold)}</b></div>` : '') +
+        (r.divs ? `<div class="r"><span><i style="background:var(--good)"></i>${tr('Dividends')}</span><b>${money(r.divs, 2)}</b></div>` : ''),
         e.clientX, e.clientY));
       hit.addEventListener('pointerleave', hideTip);
     });
   }
 
   // ---------- every transaction ----------
-  const TYPE = { BUY: ['Buy', 'p-buy'], SELL: ['Sale', 'p-sell'], DIV: ['Dividend', 'p-div'], IN: ['Moved in', 'p-xfer'], OUT: ['Moved out', 'p-xfer'] };
+  const TYPE = { BUY: [tr('Buy'), 'p-buy'], SELL: [tr('Sale'), 'p-sell'], DIV: [tr('Dividend'), 'p-div'], IN: [tr('Moved in'), 'p-xfer'], OUT: [tr('Moved out'), 'p-xfer'] };
   const allRows = [
     ...data.activity,
     ...(data.income || []).map((i) => ({ d: i.d, type: 'DIV', t: i.t, sh: null, price: null, amount: i.amount })),
   ].sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0));
   const fStock = $('f-stock'), fType = $('f-type');
-  fStock.replaceChildren(new Option('All stocks', ''), ...[...new Set(allRows.map((r) => r.t))].sort().map((t) => new Option(t, t)));
+  fStock.replaceChildren(new Option(tr('All stocks'), ''), ...[...new Set(allRows.map((r) => r.t))].sort().map((t) => new Option(t, t)));
   function drawActivity() {
     const rows = allRows.filter((r) => (!fStock.value || r.t === fStock.value) && (fType.value === 'all' || r.type === fType.value));
-    $('f-count').textContent = `${rows.length.toLocaleString('en-US')} of ${allRows.length.toLocaleString('en-US')}`;
+    $('f-count').textContent = tr('{a} of {b}', { a: count(rows.length), b: count(allRows.length) });
     document.querySelector('#act-table tbody').innerHTML = rows.map((r) => {
       const [label, pill] = TYPE[r.type] || [r.type, 'p-xfer'];
       return `<tr><td class="l">${fmtDate(r.d)}</td><td class="l"><span class="pill ${pill}">${label}</span></td><td class="l tkr">${window.Shared.logo(r.t, 18)}${esc(r.t)}</td>` +
@@ -624,8 +640,8 @@
   // ---------- go ----------
   // Say what went wrong instead of leaving the page blank.
   function showProblem(err) {
-    $('lede').innerHTML = `<b class="neg">This page couldn't be drawn:</b> ${esc(String(err?.message || err))}. ` +
-      'Try <b>Refresh prices</b>, or upload your file again.';
+    $('lede').innerHTML = `<b class="neg">${tr('This page couldn\'t be drawn:')}</b> ${esc(String(err?.message || err))}. ` +
+      tr('Try <b>Refresh prices</b>, or upload your file again.');
   }
   addEventListener('error', (e) => showProblem(e.error || e.message));
 

@@ -2,9 +2,10 @@
 // Prices come from this site's own /api/chart, which asks Yahoo Finance.
 // The request carries only the ticker symbol.
 (() => {
+  const t = (s, v) => window.Shared.t(s, v);
   async function chart(symbol, range, interval) {
     const url = `/api/chart?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}`;
-    let last = 'no response';
+    let last = t('no response');
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin', referrerPolicy: 'no-referrer' });
@@ -13,11 +14,11 @@
         last = body.error || `HTTP ${res.status}`;
         if (res.status < 500) break; // a rejected request won't succeed on retry
       } catch {
-        last = 'network error';
+        last = t('network error');
       }
       if (attempt < 2) await new Promise((ok) => setTimeout(ok, 1000 * (attempt + 1)));
     }
-    throw new Error(`Couldn't get prices for ${symbol} (${last}). Check your internet connection and try again.`);
+    throw new Error(t('Couldn\'t get prices for {symbol} ({reason}). Check your internet connection and try again.', { symbol, reason: last }));
   }
 
   // price times as New York dates, wherever the browser is
@@ -40,7 +41,7 @@
       if (c != null && day >= sinceIso) series.push([day, Math.round(c * 1e4) / 1e4]);
     });
     const price = Number(full.meta.regularMarketPrice);
-    if (!Number.isFinite(price)) throw new Error(`No current price for ${symbol}.`);
+    if (!Number.isFinite(price)) throw new Error(t('No current price for {symbol}.', { symbol }));
     return {
       prevClose: previousClose(full.meta, price),
       name: String(full.meta.longName || full.meta.shortName || symbol).slice(0, 120),
@@ -70,7 +71,7 @@
       const c = closes[i], day = isoDay(ts);
       if (c != null && day >= sinceIso) series.push([day, Math.round(c * 1e4) / 1e4]);
     });
-    if (!series.length) throw new Error(`No price history for ${symbol}.`);
+    if (!series.length) throw new Error(t('No price history for {symbol}.', { symbol }));
     const price = Number(weekly.meta.regularMarketPrice), prev = previousClose(weekly.meta, price);
     return { series, dayChange: prev ? price / prev - 1 : null };
   }
@@ -85,7 +86,7 @@
       if (c != null && day >= sinceIso) series.push([day, Math.round(c * 1e4) / 1e4]);
     });
     const price = Number(weekly.meta.regularMarketPrice);
-    if (!Number.isFinite(price)) throw new Error(`No current price for ${symbol}.`);
+    if (!Number.isFinite(price)) throw new Error(t('No current price for {symbol}.', { symbol }));
     return { price, prevClose: previousClose(weekly.meta, price), series, time: weekly.meta.regularMarketTime };
   }
 
@@ -93,7 +94,7 @@
   async function fetchProfile(symbol) {
     const res = await fetch(`/api/profile?symbol=${encodeURIComponent(symbol)}`, { cache: 'no-store', credentials: 'same-origin', referrerPolicy: 'no-referrer' });
     if (res.status === 404) return { symbol, type: null, sector: null, industry: null };
-    if (!res.ok) throw new Error(`Couldn't get details for ${symbol}.`);
+    if (!res.ok) throw new Error(t('Couldn\'t get details for {symbol}.', { symbol }));
     return res.json();
   }
 
