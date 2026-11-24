@@ -57,14 +57,6 @@
         <button type="button" role="radio" data-v="QQQ">Nasdaq 100</button>
         <button type="button" role="radio" data-v="VTI">Total US market</button>
       </div>
-      <div class="seg" id="range" role="radiogroup" aria-label="Period">
-        <span class="seg-label">Period</span>
-        <button type="button" role="radio" data-v="6M">6M</button>
-        <button type="button" role="radio" data-v="YTD">YTD</button>
-        <button type="button" role="radio" data-v="1Y">1Y</button>
-        <button type="button" role="radio" data-v="2Y">2Y</button>
-        <button type="button" role="radio" data-v="ALL">All</button>
-      </div>
       <button class="wb-btn" id="share-open" type="button">Share card</button>
     </div>
   </header>
@@ -138,9 +130,20 @@
           <h2>Your stocks against the market</h2>
           <p class="note" id="growth-note"></p>
         </div>
-        <div class="seg small" id="mode" role="radiogroup" aria-label="Show">
-          <button type="button" role="radio" data-v="value">Value ($)</button>
-          <button type="button" role="radio" data-v="return">Return (%)</button>
+        <!-- these change only this chart and the sentence under it -->
+        <div class="controls">
+          <div class="seg small" id="range" role="radiogroup" aria-label="Period">
+            <span class="seg-label">Period</span>
+            <button type="button" role="radio" data-v="6M">6M</button>
+            <button type="button" role="radio" data-v="YTD">YTD</button>
+            <button type="button" role="radio" data-v="1Y">1Y</button>
+            <button type="button" role="radio" data-v="2Y">2Y</button>
+            <button type="button" role="radio" data-v="ALL">All</button>
+          </div>
+          <div class="seg small" id="mode" role="radiogroup" aria-label="Show">
+            <button type="button" role="radio" data-v="value">Value ($)</button>
+            <button type="button" role="radio" data-v="return">Return (%)</button>
+          </div>
         </div>
       </div>
       <div class="legend" id="legend"></div>
